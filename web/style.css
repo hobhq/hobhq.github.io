@@ -436,6 +436,14 @@ h1 { font-size: 36px; line-height: 44px; }
 .hero-fig { width: 170px; height: 170px; }
 @media (prefers-reduced-motion: reduce) { .hero::before { animation: none; } }
 
+
+/* ---------------------------------------------------------------- layout stability (CLS)
+   icons keep a fixed box while the icon font loads; areas filled by chain data reserve their space */
+.ms { width: 1em; overflow: hidden; }
+.chips { min-height: 26px; }
+.hero-chains { min-height: 20px; }
+.nodes .node { min-height: 340px; }
+
 @media (max-width: 1180px) {
   .rail { display: none; }
   .main { margin-left: 0; }
@@ -456,6 +464,7 @@ h1 { font-size: 36px; line-height: 44px; }
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
+  .nodes .node { min-height: 0; }
   h1 { font-size: 28px; line-height: 34px; }
   .ph-actions { flex-direction: row; }
   .n-panel .np-h .big { font-size: 22px; }

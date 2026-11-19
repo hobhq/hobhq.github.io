@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://esm.sh https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org; base-uri 'none'; form-action 'none'" />
+  <link rel="modulepreload" href="vendor/viem.js" />
+  <link rel="modulepreload" href="app.js" />
+  <link rel="preload" href="deployment.testnet.json" as="fetch" crossorigin />
   <meta name="referrer" content="no-referrer" />
   <title>Hob</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e63946'/%3E%3Cpath d='M32 12 52 29v20a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V29Z' fill='%23ffd9d6'/%3E%3Cellipse cx='26' cy='38' rx='3' ry='5' fill='%23111317'/%3E%3Cellipse cx='38' cy='38' rx='3' ry='5' fill='%23111317'/%3E%3C/svg%3E" />

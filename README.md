@@ -129,7 +129,7 @@ src/HobReactive.sol     reactive contract: household ledger, velocity, mirroring
 test/                      unit tests, invariant fuzz, ReactiveSim (local Reactive Network stand-in)
 script/                    Foundry deploy scripts, mutants.sh
 ops/                       deploy · relayer (local) · seed · burst · prove (evidence)
-web/                       dashboard (static, viem)
+web/                       dashboard (static HTML/CSS/JS; viem self-hosted in web/vendor, rebuilt by ops/build-vendor.mjs)
 docs/                      evidence
 ```
 

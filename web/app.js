@@ -7,8 +7,8 @@ import {
   formatUnits,
   http,
   parseUnits,
-} from "https://esm.sh/viem@2.21.55";
-import { privateKeyToAccount } from "https://esm.sh/viem@2.21.55/accounts";
+  privateKeyToAccount,
+} from "./vendor/viem.js"; // viem 2.21.55, self-hosted (node ops/build-vendor.mjs)
 
 // ================================================================== config
 // local dev server -> the anvil chains; anywhere else (GitHub Pages) -> the live testnet deployment
@@ -105,7 +105,7 @@ async function load() {
   const [period, quorum, head] = await Promise.all([read(C.base, "currentPeriod"), read(C.base, "quorum"), C.base.p.getBlock()]);
   const s = { period, quorum, now: head.timestamp, periodStart: BigInt(D.epoch) + period * BigInt(D.period) };
 
-  s.rules = await Promise.all(
+  const rulesP = Promise.all(
     CATS.map(async (cat) => {
       const [rule, vHome, vMirror] = await Promise.all([
         read(C.base, "rules", [cat.id]),
@@ -117,7 +117,7 @@ async function load() {
     })
   );
 
-  s.budget = await Promise.all(
+  const budgetP = Promise.all(
     CATS.map(async (cat) => {
       const [ledger, cap, threshold, byBase, byUni, stBase, stUni] = await Promise.all([
         read(C.reactive, "ledger", [period, cat.id]),
@@ -133,32 +133,36 @@ async function load() {
     })
   );
 
-  s.members = await Promise.all(
+  const membersP = Promise.all(
     [...members].map(async (m) => {
       const [h, u] = await Promise.all([read(C.base, "members", [m]), read(C.uni, "members", [m])]);
       return { m, role: Number(h[0]), roleMirror: Number(u[0]), fBase: h[1] > s.now, fUni: u[1] > s.now, until: h[1] > u[1] ? h[1] : u[1] };
     })
   );
-  s.agent = s.members.find((r) => r.m === WHO.agent.toLowerCase());
-  const [vcfg, vnow] = await Promise.all([read(C.reactive, "velocityFor", [2]), read(C.reactive, "velocityOf", [WHO.agent])]);
-  s.agentPace = { maxTx: Number(vcfg[1]), window: Number(vcfg[2]), freezeFor: Number(vcfg[3]), count: Number(vnow[1]) };
+  const paceP = Promise.all([read(C.reactive, "velocityFor", [2]), read(C.reactive, "velocityOf", [WHO.agent])]);
 
-  s.pending = [];
-  const nP = await read(C.base, "proposalCount");
-  s.proposalCount = nP;
-  for (let i = nP > 8n ? nP - 8n : 0n; i < nP; i++) {
-    const p = await read(C.base, "proposal", [i]);
-    if (p.executed || p.expiresAt < s.now) continue;
-    s.pending.push({ type: "proposal", id: i, p });
-  }
-  for (const c of VAULTS) {
-    const n = await read(c, "pendingCount");
-    for (let i = n > 8n ? n - 8n : 0n; i < n; i++) {
-      const [member, to, amount, expiresAt, category, closed] = await read(c, "pending", [i]);
+  const pendingP = (async () => {
+    // proposals and co-sign requests: the last 8 of each, read in parallel
+    const last8 = (n) => Array.from({ length: Number(n > 8n ? 8n : n) }, (_, k) => n - 1n - BigInt(k)).reverse();
+    const [nP, ...nPend] = await Promise.all([read(C.base, "proposalCount"), ...VAULTS.map((c) => read(c, "pendingCount"))]);
+    s.proposalCount = nP;
+    const [props, ...pends] = await Promise.all([
+      Promise.all(last8(nP).map(async (id) => ({ id, p: await read(C.base, "proposal", [id]) }))),
+      ...VAULTS.map((c, k) => Promise.all(last8(nPend[k]).map(async (id) => ({ id, c, r: await read(c, "pending", [id]) })))),
+    ]);
+    s.pending = [];
+    for (const { id, p } of props) if (!p.executed && p.expiresAt >= s.now) s.pending.push({ type: "proposal", id, p });
+    for (const { id, c, r } of pends.flat()) {
+      const [member, to, amount, expiresAt, category, closed] = r;
       if (closed || expiresAt < s.now) continue;
-      s.pending.push({ type: "spend", id: i, c, member, to, amount, category: Number(category) });
+      s.pending.push({ type: "spend", id, c, member, to, amount, category: Number(category) });
     }
-  }
+  })();
+  // the stages above are independent: they run concurrently (one RPC round trip instead of five)
+  const [rules, budget, mems, [vcfg, vnow]] = await Promise.all([rulesP, budgetP, membersP, paceP, pendingP]);
+  Object.assign(s, { rules, budget, members: mems });
+  s.agent = s.members.find((r) => r.m === WHO.agent.toLowerCase());
+  s.agentPace = { maxTx: Number(vcfg[1]), window: Number(vcfg[2]), freezeFor: Number(vcfg[3]), count: Number(vnow[1]) };
   S = s;
 }
 
@@ -205,6 +209,7 @@ const CHUNK = LOCAL ? 1_000_000n : 5_000n; // PublicNode RPCs accept 10k-block l
 // Testnet: read history from each contract's deploy block, so every loop since deploy is shown.
 async function startBlock(c) {
   if (LOCAL || !c.deployTx) return 0n;
+  if (c.deployBlock !== undefined) return BigInt(c.deployBlock); // recorded at deploy: no receipt round trip
   try {
     return (await c.p.getTransactionReceipt({ hash: c.deployTx })).blockNumber;
   } catch {
@@ -220,32 +225,32 @@ async function tsOf(c, blockNumber) {
   return blockTime.get(k);
 }
 
-async function pollEvents() {
-  const fresh = [];
-  for (const c of Object.values(C)) {
-    const head = await c.p.getBlockNumber();
-    heads[c.key] = head;
-    if (cursors[c.key] === undefined) cursors[c.key] = await startBlock(c);
-    let from = cursors[c.key];
-    while (from <= head) {
-      const to = from + CHUNK - 1n < head ? from + CHUNK - 1n : head;
-      for (const lg of await c.p.getLogs({ address: c.address, fromBlock: from, toBlock: to })) {
-        let ev;
-        try {
-          ev = decodeEventLog({ abi: c.abi, data: lg.data, topics: lg.topics });
-        } catch {
-          continue;
-        }
-        if (!DESCRIBE[ev.eventName]) continue;
-        if (ev.eventName === "MemberSet") members.add(ev.args.member.toLowerCase());
-        const e = { c, name: ev.eventName, a: ev.args, lg, kind: KIND[ev.eventName] ?? "origin", ts: await tsOf(c, lg.blockNumber), order: Number(lg.blockNumber) * 1000 + lg.logIndex };
-        EV.push(e);
-        fresh.push(e);
-      }
-      from = to + 1n;
-    }
-    cursors[c.key] = head + 1n;
+async function pollChain(c) {
+  const head = await c.p.getBlockNumber();
+  heads[c.key] = head;
+  if (cursors[c.key] === undefined) cursors[c.key] = await startBlock(c);
+  const ranges = [];
+  for (let from = cursors[c.key]; from <= head; from += CHUNK) ranges.push([from, from + CHUNK - 1n < head ? from + CHUNK - 1n : head]);
+  const logs = (await Promise.all(ranges.map(([fromBlock, toBlock]) => c.p.getLogs({ address: c.address, fromBlock, toBlock })))).flat();
+  const decoded = [];
+  for (const lg of logs) {
+    try {
+      const ev = decodeEventLog({ abi: c.abi, data: lg.data, topics: lg.topics });
+      if (DESCRIBE[ev.eventName]) decoded.push({ lg, ev });
+    } catch {}
   }
+  await Promise.all([...new Set(decoded.map((d) => d.lg.blockNumber))].map((n) => tsOf(c, n)));
+  cursors[c.key] = head + 1n;
+  return Promise.all(decoded.map(async ({ lg, ev }) => {
+    if (ev.eventName === "MemberSet") members.add(ev.args.member.toLowerCase());
+    return { c, name: ev.eventName, a: ev.args, lg, kind: KIND[ev.eventName] ?? "origin", ts: await tsOf(c, lg.blockNumber), order: Number(lg.blockNumber) * 1000 + lg.logIndex };
+  }));
+}
+
+async function pollEvents() {
+  // the three chains, every chunk and every block timestamp are fetched in parallel
+  const fresh = (await Promise.all(Object.values(C).map(pollChain))).flat();
+  EV.push(...fresh);
   EV.sort((x, y) => x.ts - y.ts || RANK[x.kind] - RANK[y.kind] || x.order - y.order);
   if (EV.length > 1500) EV.splice(0, EV.length - 1500);
   if (primed && fresh.length) animate(fresh);
@@ -1233,8 +1238,12 @@ function refresh() {
   if (inflight) return inflight;
   inflight = (async () => {
     try {
-      await load(); // state first, then events: every state change we show has its cause in the event list
-      await pollEvents();
+      // first paint: state and history together; after that, state first, then events, so every state
+      // change we show already has its cause in the event list
+      if (primed) {
+        await load();
+        await pollEvents();
+      } else await Promise.all([load(), pollEvents()]);
       const loops = renderDashboard();
       renderSteps();
       renderRules();

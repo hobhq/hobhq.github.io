@@ -22,7 +22,7 @@ async function deploy(c, art, args = [], value = 0n) {
   const hash = await w.deployContract({ abi: art.abi, bytecode: art.bytecode, args, value });
   const r = await p.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`deploy failed on ${c.name}`);
-  return { address: r.contractAddress, hash };
+  return { address: r.contractAddress, hash, block: Number(r.blockNumber) };
 }
 
 async function send(c, key, address, abi, functionName, args, value = 0n) {
@@ -75,10 +75,10 @@ async function main() {
       const fund = parseEther(process.env.CALLBACK_FUND ?? "0.005");
       await send(c, K.alice, proxy, depositAbi, "depositTo", [vault.address], fund);
     }
-    out.chains[key] = { ...c, proxy, vault: vault.address, token: token.address, deployTx: vault.hash, home: isHome };
+    out.chains[key] = { ...c, proxy, vault: vault.address, token: token.address, deployTx: vault.hash, deployBlock: vault.block, home: isHome };
     console.log(`  ${c.name}: vault ${vault.address} token ${token.address}${isHome ? " (home)" : ""}`);
   }
-  out.chains.reactive = { ...N.reactive, contract: rsc.address, deployTx: rsc.hash };
+  out.chains.reactive = { ...N.reactive, contract: rsc.address, deployTx: rsc.hash, deployBlock: rsc.block };
   out.epoch = Number(epoch);
   out.period = Number(PERIOD);
 

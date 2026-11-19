@@ -11,7 +11,8 @@
       "vault": "0xdccfd0ab805964b96676cb0d0036c477a737fb0d",
       "token": "0x9defbbe785145066361aaffa5b4b51c4f187f115",
       "deployTx": "0xe7dbeef47fe724d5e7cf5c322f7734b764d5028aae14ffde78b2566e35d81f1e",
-      "home": true
+      "home": true,
+      "deployBlock": 60953812
     },
     "uni": {
       "name": "Unichain Sepolia",
@@ -22,7 +23,8 @@
       "vault": "0x2a3df5dae0cf2d02129b344dfa836e4fcb64a442",
       "token": "0x7f7dc018253d008af9a106aef6de7a878e30210d",
       "deployTx": "0x104b300d1e00a602a7932411ff3ddac01471b8e7297c7692e66236039492f720",
-      "home": false
+      "home": false,
+      "deployBlock": 68260211
     },
     "reactive": {
       "name": "Reactive Lasna",
@@ -30,7 +32,8 @@
       "rpc": "https://lasna-rpc.rnk.dev/",
       "explorer": "https://lasna.reactscan.net",
       "contract": "0x6704a66d6c0cabc5595b32797ecb5c043b6e9680",
-      "deployTx": "0x4cfc687ffcaec05fb960187c8d665ed9adf2f621ff17e4049c02104c7414944f"
+      "deployTx": "0x4cfc687ffcaec05fb960187c8d665ed9adf2f621ff17e4049c02104c7414944f",
+      "deployBlock": 8753313
     }
   },
   "members": {
