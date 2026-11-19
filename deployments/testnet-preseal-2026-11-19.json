@@ -1,0 +1,44 @@
+{
+  "network": "testnet",
+  "deployedAt": "2026-11-19T01:14:02.769Z",
+  "chains": {
+    "base": {
+      "name": "Base Sepolia",
+      "chainId": 84532,
+      "rpc": "https://base-sepolia-rpc.publicnode.com",
+      "explorer": "https://base-sepolia.blockscout.com",
+      "proxy": "0x476F44b11F5C942c58f4c8E3d0300E5710743585",
+      "vault": "0x5f0d7b6f164973cc4e725753e168b51f8b79bab5",
+      "token": "0x750940a9c24974eb56fd5398d1f9568526638508",
+      "deployTx": "0xe6106257ae05239a563c0039787d3ad9e13bfd802657d8abbaf810f40c43c1c9",
+      "home": true
+    },
+    "uni": {
+      "name": "Unichain Sepolia",
+      "chainId": 1301,
+      "rpc": "https://unichain-sepolia-rpc.publicnode.com",
+      "explorer": "https://sepolia.uniscan.xyz",
+      "proxy": "0x775c9B990ADe401060B78D0e98684eEf8d2466C1",
+      "vault": "0x342af9e3a960b31c306e75af73f32802cf366134",
+      "token": "0xdd52e4a86810f094905f72297c07bcb3cedb2399",
+      "deployTx": "0xecba0f414a162dedb3df38cecbca15912cf4aaa3c073defdd7daa0f8a60e1e9d",
+      "home": false
+    },
+    "reactive": {
+      "name": "Reactive Lasna",
+      "chainId": 5318007,
+      "rpc": "https://lasna-rpc.rnk.dev/",
+      "explorer": "https://lasna.reactscan.net",
+      "contract": "0x3b3605458436950803966c387abd0ca4d58db1ad",
+      "deployTx": "0xcdc62736150662fb7b958799db2b3b43eb59e50c16b6bca7393899e370730ef7"
+    }
+  },
+  "members": {
+    "alice": "0xED7fc2Fd462EaeB5616b8421A6D646EF7F0884Cb",
+    "bob": "0xE1D24e45d6cD0Ed81A415363fa9f3dA2883A6A2A",
+    "agent": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180"
+  },
+  "epoch": 1795050789,
+  "period": 2592000,
+  "resyncTx": "0x5b7cc6a1a310f921bfc5ba573846789129a02dd471d11998d7a5bf316d412efb"
+}

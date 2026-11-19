@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://esm.sh https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Hob</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e63946'/%3E%3Cpath d='M32 12 52 29v20a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V29Z' fill='%23ffd9d6'/%3E%3Cellipse cx='26' cy='38' rx='3' ry='5' fill='%23111317'/%3E%3Cellipse cx='38' cy='38' rx='3' ry='5' fill='%23111317'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Hob, defined once (logo, hero, node, chapter boxes) -->
+  <svg width="0" height="0" class="defs" aria-hidden="true">
+    <defs>
+      <linearGradient id="hob-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="g1" /><stop offset="1" class="g2" /></linearGradient>
+      <symbol id="hob" viewBox="0 0 120 120">
+        <rect class="chimney" x="80" y="14" width="12" height="24" rx="3" />
+        <path class="roof" d="M60 8 114 52H6Z" />
+        <path class="body" d="M18 48h84v52a10 10 0 0 1-10 10H28a10 10 0 0 1-10-10Z" fill="url(#hob-body)" />
+        <g class="eyes"><ellipse cx="45" cy="74" rx="7" ry="10" /><ellipse cx="75" cy="74" rx="7" ry="10" /></g>
+        <path class="mouth" d="M50 95q10 7 20 0" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ================================================================ top bar -->
+  <header class="topbar">
+    <div class="tb-left">
+      <a class="brand" href="#" data-tab="home" aria-label="Hob, dashboard">
+        <span class="brand-mark"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg></span>
+        <span class="brand-name">HOB</span>
+      </a>
+      <span class="net-pill"><span id="heartbeat" class="dot"></span><span id="net-label">…</span></span>
+    </div>
+    <nav class="tb-nav" role="tablist">
+      <button role="tab" data-tab="home" aria-selected="true">Dashboard</button>
+      <button role="tab" data-tab="dash" aria-selected="false">The House</button>
+      <button role="tab" data-tab="story" aria-selected="false">The Story</button>
+      <button role="tab" data-tab="hood" aria-selected="false">For Judges</button>
+    </nav>
+    <div class="tb-right">
+      <button class="btn primary" data-tab="story"><span class="ms">play_arrow</span>Run the story</button>
+    </div>
+  </header>
+
+  <!-- ================================================================ rail -->
+  <aside class="rail">
+    <div>
+      <p class="rail-label">Telemetry rail</p>
+      <nav class="rail-nav">
+        <button data-tab="home" aria-selected="true"><span class="ms">grid_view</span>Dashboard</button>
+        <button data-tab="dash" aria-selected="false"><span class="ms">chalet</span>The House</button>
+        <button data-tab="story" aria-selected="false"><span class="ms">auto_stories</span>The Story</button>
+        <button data-tab="hood" aria-selected="false"><span class="ms">gavel</span>For Judges</button>
+      </nav>
+    </div>
+    <div class="rail-chains" id="rail-chains"></div>
+  </aside>
+
+  <!-- ================================================================ main -->
+  <main class="main">
+    <div class="glow g-a" aria-hidden="true"></div>
+    <div class="glow g-b" aria-hidden="true"></div>
+    <div class="gridlines" aria-hidden="true"></div>
+
+    <!-- Dashboard header + hero (dashboard tab only) -->
+    <div class="tab" id="tab-home-top">
+      <section class="page-head">
+        <div class="ph-text">
+          <div class="chips" id="chips"></div>
+          <h1>Autonomous Household Governance</h1>
+          <p class="lede">Two adults agree on the house rules. Pip, an AI shopper, buys. Hob, a guardian running on Reactive Network, watches Base and Unichain and enforces the rules by itself, with no bot, no cron and no admin.</p>
+        </div>
+        <div class="ph-actions">
+          <button class="btn" data-tab="hood"><span class="ms accent">shield_with_heart</span>Verify on-chain</button>
+          <button class="btn primary" data-tab="story"><span class="ms">bolt</span>Run the story</button>
+        </div>
+      </section>
+
+      <section class="hero glass-card">
+        <div class="hero-txt">
+          <span class="eyebrow">Hob is on duty</span>
+          <p class="hero-say" id="hero-say" role="status">…</p>
+          <div class="hero-chains" id="hero-chains"></div>
+        </div>
+        <div class="hero-fig" id="hero-fig"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg></div>
+      </section>
+    </div>
+
+    <!-- The three nodes: always visible, every event flies between them -->
+    <section class="nodes" id="map">
+      <div class="node" id="n-base"></div>
+      <div class="node node-hob mood-calm" id="n-rx"></div>
+      <div class="node" id="n-uni"></div>
+      <div class="pulses" id="pulses" aria-hidden="true"></div>
+    </section>
+
+    <!-- ============================================================ Dashboard -->
+    <div class="tab" id="tab-home">
+      <section class="glass-card section">
+        <div class="sec-head">
+          <div><span class="eyebrow">Unified cross-chain ledger</span><h2 id="ledger-title">House groceries this month</h2></div>
+          <div class="legend" id="ledger-legend"></div>
+        </div>
+        <div id="ledger"></div>
+        <div class="chart-card">
+          <div class="chart-head"><span>House spend, purchase by purchase · from on-chain events</span><span class="chart-note" id="chart-note"></span></div>
+          <div id="chart" class="chart"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="sec-head">
+          <div><span class="eyebrow">Household roster &amp; co-signers</span><h2>Signers &amp; the AI shopper</h2></div>
+          <span class="meta" id="roster-meta"></span>
+        </div>
+        <div class="roster" id="roster"></div>
+      </section>
+
+      <section class="glass-card section">
+        <div class="sec-head">
+          <div><span class="eyebrow">Reactive orchestration log</span><h2>What Hob did</h2></div>
+          <span class="meta"><span class="ms sm">sync</span>read live from Base, Unichain and Lasna</span>
+        </div>
+        <div class="hob-steps" id="hob-steps"></div>
+      </section>
+
+      <section class="glass-card section" id="console-card">
+        <div class="sec-head">
+          <div><span class="eyebrow">Judges &amp; operator testbed</span><h2>Interactive console</h2></div>
+          <span class="badge-soft"><span class="ms sm">science</span><span id="act-hint"></span></span>
+        </div>
+        <div class="form-grid">
+          <label>Resident / operator <select id="as"></select></label>
+          <label>Target chain <select id="on"></select></label>
+          <label>Expense category <select id="cat"><option value="0">Groceries</option><option value="1">Rent</option></select></label>
+          <label>Amount (USDC) <input id="amt" type="number" min="1" step="1" value="40" /></label>
+        </div>
+        <div class="form-actions">
+          <button id="btn-spend" class="btn primary"><span class="ms">send</span>Dispatch spend</button>
+          <button id="btn-spike" class="btn danger"><span class="ms">bolt</span>Trigger Pip's 7-buy spike</button>
+          <button id="btn-unfreeze" class="btn"><span class="ms">lock_open</span>Unfreeze Pip</button>
+          <span class="ready"><span class="dot on"></span><span id="toast" class="toast" role="status">Ready</span></span>
+        </div>
+        <details class="propose">
+          <summary>Propose a rule</summary>
+          <div class="form-grid">
+            <label>Monthly cap <input id="r-cap" type="number" value="1000" /></label>
+            <label>Max per purchase <input id="r-tx" type="number" value="200" /></label>
+            <label>Second adult above <input id="r-co" type="number" value="150" /></label>
+            <label>&nbsp;<button id="btn-propose" class="btn">Propose</button></label>
+          </div>
+        </details>
+        <div class="terminal">
+          <div class="term-head"><span>// Hob trace · Base · Unichain · Reactive</span><span id="term-clock"></span></div>
+          <ol id="feed" class="term-log"></ol>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================ The House -->
+    <div class="tab" id="tab-dash" hidden>
+      <div class="grid">
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">Agreed by two adults · copied by Hob</span><h2>The house rules</h2></div></div>
+          <div id="rules" class="rules"></div>
+        </section>
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">Both chains together</span><h2>This month</h2></div><span class="meta" id="period-label"></span></div>
+          <div id="budgets"></div>
+        </section>
+        <section class="glass-card section">
+          <div class="sec-head"><div><span class="eyebrow">Members</span><h2>Who lives here</h2></div></div>
+          <div id="members" class="members"></div>
+        </section>
+        <section class="glass-card section">
+          <div class="sec-head"><div><span class="eyebrow">Co-sign queue</span><h2>Waiting for a second adult</h2></div></div>
+          <div id="pending"></div>
+        </section>
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">Every loop, with its transactions</span><h2>Origin → Hob on Reactive → callbacks</h2></div></div>
+          <div id="loops" class="loops"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ============================================================ The Story -->
+    <div class="tab" id="tab-story" hidden>
+      <div class="story">
+        <ol class="steps glass-card" id="steps"></ol>
+        <article class="glass-card step" id="step"></article>
+      </div>
+    </div>
+
+    <!-- ============================================================ For Judges -->
+    <div class="tab" id="tab-hood" hidden>
+      <div class="grid">
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">The case for Reactive</span><h2>Why this needs Reactive</h2></div></div>
+          <div class="compare">
+            <div class="col without">
+              <h3><span class="ms">block</span>Without Hob</h3>
+              <ul>
+                <li>Each vault sees only its own chain.</li>
+                <li>Pip's 3 buys on Base and 4 on Unichain each look fine. Nobody notices 7.</li>
+                <li>Groceries can be overspent by shopping on both chains.</li>
+                <li>A rule changed on Base has to be re-entered on Unichain by hand, by someone with admin rights there.</li>
+                <li>The month resets only if a keeper or cron job remembers.</li>
+              </ul>
+            </div>
+            <div class="col with">
+              <h3><span class="ms">verified</span>With Hob on Reactive Network</h3>
+              <ul>
+                <li>One household ledger, summed across chains.</li>
+                <li>Pip's pace counted across chains, then frozen on every chain.</li>
+                <li>Tight at the line (what's left is split per chain), frozen at the cap.</li>
+                <li>Rules and members are copied by callbacks only. There is no admin on the mirrors.</li>
+                <li>No cron: the period id travels inside every spend event.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">Judging criteria</span><h2>Where to find the evidence</h2></div></div>
+          <div class="criteria" id="criteria"></div>
+        </section>
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">Read from the chains right now</span><h2>Live numbers</h2></div></div>
+          <div class="stats" id="live-stats"></div>
+        </section>
+        <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">Deployment</span><h2>Contracts</h2></div><span class="meta" id="deployed-at"></span></div>
+          <div class="table-wrap"><table class="contracts" id="contracts"></table></div>
+        </section>
+        <section class="glass-card section">
+          <div class="sec-head"><div><span class="eyebrow">Integration</span><h2>Reactive features used</h2></div></div>
+          <ul class="ticks">
+            <li><b>Subscriptions</b> to 3 event topics on 2 origin chains, registered after deploy (<code>registerVault</code>)</li>
+            <li><b>Stateful <code>react()</code></b>: a household ledger per period × category, plus role and velocity per member</li>
+            <li><b>Callbacks to every chain</b>, including the chain the event came from</li>
+            <li><b>No cron</b>: the period id is carried in the event</li>
+            <li><b>Idempotent</b>: duplicate logs are skipped; stale or downgrading callbacks are ignored, not reverted (failed callbacks are still billed)</li>
+            <li><b>Sealed setup</b>: after deploy, <code>seal()</code> removes every admin power. Nobody can add a vault or change a limit</li>
+            <li><b>Gas</b>: the heaviest <code>react()</code> seen is ~493k (ledger + velocity freeze + 2 callbacks), under the 900k cap</li>
+          </ul>
+        </section>
+        <section class="glass-card section">
+          <div class="sec-head"><div><span class="eyebrow">Craft</span><h2>Guarantees, tested</h2></div></div>
+          <ul class="ticks">
+            <li><b>57 tests</b>: 50 unit tests (one per house rule) and 7 fuzzed invariants (256 runs × 60 calls)</li>
+            <li><b>Never above the cap</b> when Reactive answers before the next action</li>
+            <li><b>Overshoot under latency</b> is no more than what is in flight; once delivered, every chain is FROZEN and the ledger equals the sum of the chains</li>
+            <li><b>Mutation testing</b>: 17 planted bugs, all 17 caught</li>
+            <li><b>Local and synchronous checks</b> on each vault: max per purchase, co-sign, per-role rate limit</li>
+          </ul>
+          <pre class="cmd">forge test
+./script/mutants.sh
+node ops/prove.mjs testnet   # → docs/EVIDENCE.md</pre>
+        </section>
+      </div>
+    </div>
+
+    <footer><span id="addrs"></span></footer>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

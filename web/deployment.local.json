@@ -1,0 +1,44 @@
+{
+  "network": "local",
+  "deployedAt": "2026-11-19T12:53:01.840Z",
+  "chains": {
+    "base": {
+      "name": "Base (local)",
+      "chainId": 84532,
+      "rpc": "http://127.0.0.1:8545",
+      "explorer": null,
+      "proxy": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "vault": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "token": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "deployTx": "0xf7dac131520fec6c348a0a0a32dce4c6676a112b2b313078d2c9a12e7cd8d2f9",
+      "home": true
+    },
+    "uni": {
+      "name": "Unichain (local)",
+      "chainId": 1301,
+      "rpc": "http://127.0.0.1:8546",
+      "explorer": null,
+      "proxy": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "vault": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "token": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "deployTx": "0x7e7d159e66400f9211022a54ec8657df6667d9113f0e9659f3b3feb5bfb1742d",
+      "home": false
+    },
+    "reactive": {
+      "name": "Reactive (local)",
+      "chainId": 5318007,
+      "rpc": "http://127.0.0.1:8547",
+      "explorer": null,
+      "contract": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "deployTx": "0x00a53cd425b844ce5f2f53fdbb0836d60bf4d54fa242d649e65a6423565f32b9"
+    }
+  },
+  "members": {
+    "alice": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "bob": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "agent": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+  },
+  "epoch": 1795092721,
+  "period": 2592000,
+  "resyncTx": "0xb6af87b4fca5dbe7b24d46f4fe0c4ad25b57b6e7eccfdf46c5f8b05958622914"
+}
