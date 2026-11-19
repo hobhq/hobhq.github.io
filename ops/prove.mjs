@@ -13,7 +13,7 @@
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { join } from "node:path";
-import { decodeEventLog } from "viem";
+import { createPublicClient, decodeEventLog, http } from "viem";
 import { A, ROOT, CATEGORY, MODE, keys, loadDeployment, net, pub, sleep, txLink, wallet } from "./lib.mjs";
 
 const name = process.argv[2] ?? "local";
@@ -24,9 +24,12 @@ const V = A.vault();
 const R = A.reactive();
 const TIMEOUT = Number(process.env.LOOP_TIMEOUT_MS ?? 120_000);
 
+// second opinion for event lookups: the chains' official RPCs (1,000-block log ranges)
+const ALT_RPC = name === "local" ? {} : { base: "https://sepolia.base.org", uni: "https://sepolia.unichain.org" };
+const alt = (k) => (ALT_RPC[k] ? createPublicClient({ transport: http(ALT_RPC[k]), cacheTime: 0 }) : null);
 const chains = {
-  base: { ...N.base, vault: D.chains.base.vault, p: pub(N.base) },
-  uni: { ...N.uni, vault: D.chains.uni.vault, p: pub(N.uni) },
+  base: { ...N.base, vault: D.chains.base.vault, p: pub(N.base), alt: alt("base") },
+  uni: { ...N.uni, vault: D.chains.uni.vault, p: pub(N.uni), alt: alt("uni") },
 };
 const rx = { ...N.reactive, contract: D.chains.reactive.contract, p: pub(N.reactive) };
 let loops = [];
@@ -74,16 +77,31 @@ async function tx(chainKey, who, functionName, args) {
   return { hash, block: r.blockNumber, chain: chainKey };
 }
 
-async function findEvent(client, address, abi, eventName, fromBlock, match = () => true) {
-  const head = await client.getBlockNumber();
-  if (head < fromBlock) return null; // some nodes reject ranges that start in the future
-  const logs = await client.getLogs({ address, fromBlock, toBlock: head });
+function pick(logs, abi, eventName, match) {
   for (const lg of logs) {
     try {
       const ev = decodeEventLog({ abi, data: lg.data, topics: lg.topics });
       if (ev.eventName === eventName && match(ev.args)) return { hash: lg.transactionHash, block: lg.blockNumber, args: ev.args };
     } catch {}
   }
+  return null;
+}
+async function findEvent(client, address, abi, eventName, fromBlock, match = () => true, altClient = null) {
+  try {
+    const head = await client.getBlockNumber();
+    if (head >= fromBlock) {
+      const hit = pick(await client.getLogs({ address, fromBlock, toBlock: head }), abi, eventName, match);
+      if (hit) return hit;
+    }
+  } catch {} // a flaky node is not a failed loop; the next poll or the second RPC decides
+  if (!altClient) return null;
+  try {
+    const head = await altClient.getBlockNumber();
+    for (let f = fromBlock; f <= head; f += 900n) {
+      const hit = pick(await altClient.getLogs({ address, fromBlock: f, toBlock: f + 899n < head ? f + 899n : head }), abi, eventName, match);
+      if (hit) return hit;
+    }
+  } catch {}
   return null;
 }
 
@@ -103,11 +121,11 @@ async function loop(label, action, reactiveEvent, expects) {
     for (const e of expects) {
       if (got[e.chain]) continue;
       const c = chains[e.chain];
-      const hit = await findEvent(c.p, c.vault, V.abi, e.event, from[e.chain] + 1n, e.match);
+      const hit = await findEvent(c.p, c.vault, V.abi, e.event, from[e.chain] + 1n, e.match, c.alt);
       if (hit) got[e.chain] = { ...hit, ms: Date.now() - tOrigin };
     }
     if (reactive && expects.every((e) => got[e.chain])) break;
-    await sleep(150);
+    await sleep(Date.now() - t0 > 30_000 ? 3000 : 150); // after 30 s, poll gently
   }
   const ok = !!reactive && expects.every((e) => got[e.chain]);
   const row = { label, ok, origin, reactive, callbacks: got, ...(scenario ? { scenario } : {}) };
@@ -115,7 +133,10 @@ async function loop(label, action, reactiveEvent, expects) {
   const lat = Object.entries(got).map(([k, v]) => `${chains[k].name} ${(v.ms / 1000).toFixed(1)}s`).join(", ");
   console.log(`${ok ? "✓" : "✗"} ${label} — ${lat || "ledger updated, no callback needed"}`);
   if (STORY && reactive) console.log(DIM(`    reactive tx ${txLink(rx, reactive.hash) ?? reactive.hash}`));
-  if (!ok) throw new Error(`loop "${label}" did not complete within ${TIMEOUT} ms`);
+  if (!ok) {
+    const missing = [!reactive ? `Hob's ${reactiveEvent} on Reactive (from block ${rxFrom + 1n})` : null, ...expects.filter((e) => !got[e.chain]).map((e) => `${e.event} on ${chains[e.chain].name} (from block ${from[e.chain] + 1n})`)].filter(Boolean);
+    throw new Error(`loop "${label}" did not complete within ${TIMEOUT} ms; not seen: ${missing.join("; ")}`);
+  }
   return row;
 }
 
@@ -520,13 +541,20 @@ async function main() {
     loops = [];
     checks = [];
     const startedAt = new Date().toISOString();
-    if (kind === "story") await runStory(E.runs.length + 1);
-    else {
-      console.log(`\nRun ${E.runs.length + 1}: scenarios on ${name}`);
-      await runScenarios();
+    let error = null;
+    try {
+      if (kind === "story") await runStory(E.runs.length + 1);
+      else {
+        console.log(`\nRun ${E.runs.length + 1}: scenarios on ${name}`);
+        await runScenarios();
+      }
+    } catch (e) {
+      error = e.shortMessage ?? e.message ?? String(e);
+      console.log(`✗ Run stopped: ${error}`);
     }
+    scenario = null;
     const s = stats(loops);
-    E.runs.push(plain({ run: E.runs.length + 1, kind, period: st.period, startedAt, finishedAt: new Date().toISOString(), loops, checks, ...s }));
+    E.runs.push(plain({ run: E.runs.length + 1, kind, period: st.period, startedAt, finishedAt: new Date().toISOString(), loops, checks, ...s, ...(error ? { error } : {}) }));
     const status = await periodState();
     console.log(`\n${loops.length} loops, ${s.callbacks} callbacks, ${checks.length} checks — median ${(s.medianMs / 1000).toFixed(1)}s, p95 ${(s.p95Ms / 1000).toFixed(1)}s`);
     console.log(`groceries mode: Base ${MODE[status.base.mode]}, Unichain ${MODE[status.uni.mode]}`);
@@ -569,6 +597,10 @@ function writeEvidence() {
     L.push(`## Run ${run.run} (${run.kind === "scenarios" ? "scenarios" : "the story"}) — period #${run.period}, ${run.startedAt}`);
     L.push("");
     L.push(`${run.loops.length} loops, ${run.callbacks} callbacks, median ${(run.medianMs / 1000).toFixed(1)} s, p95 ${(run.p95Ms / 1000).toFixed(1)} s.`);
+    if (run.error) {
+      L.push("");
+      L.push(`> **Run stopped early:** ${run.error}`);
+    }
     L.push("");
     L.push("| # | Loop | Origin | Reactive tx | Callback(s) | Latency |");
     L.push("|---|---|---|---|---|---|");

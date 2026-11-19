@@ -815,7 +815,7 @@ function renderRecorded() {
   const lats = all.flatMap((l) => Object.values(l.callbacks ?? {}).map((c) => c.ms)).sort((a, b) => a - b);
   const checks = REC.runs.flatMap((r) => r.checks ?? []);
   html("recorded-stats", [
-    [REC.runs.length, "full runs (story and scenarios)"],
+    [REC.runs.filter((r) => !r.error).length, `complete runs (story and scenarios)${REC.runs.some((r) => r.error) ? `; ${REC.runs.filter((r) => r.error).length} stopped early, listed in EVIDENCE.md` : ""}`],
     [all.length, "loops, every one complete"],
     [lats.length, "callbacks delivered"],
     [secs(lats[Math.floor(lats.length / 2)]), `median origin → callback (p95 ${secs(lats[Math.min(lats.length - 1, Math.floor(lats.length * 0.95))])})`],
