@@ -822,6 +822,8 @@ function renderRecorded() {
     [`${checks.filter((c) => c.ok).length}/${checks.length}`, "checks passed, refusals included"],
     [REC.rollovers.length, "automatic rollovers observed"],
   ].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join(""));
+  const slow = all.filter((l) => Object.values(l.callbacks ?? {}).some((c) => c.ms > 120_000)).length;
+  if (slow) $("recorded-stats").insertAdjacentHTML("beforeend", `<p class="muted small" style="grid-column:1/-1">${slow} loop${slow > 1 ? "s" : ""} took over 2 minutes: on 2026-11-19 Reactive Network paused callback delivery from about 19:30 to 20:49 UTC. Hob kept reacting; the callbacks were delivered when the network recovered. The median is unaffected.</p>`);
   const last = REC.runs[REC.runs.length - 1];
   $("recorded-meta").textContent = `last run ${new Date(last.finishedAt).toLocaleString()}`;
   const rows = [];

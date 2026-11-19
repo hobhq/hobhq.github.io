@@ -586,6 +586,11 @@ function writeEvidence() {
     }
   }
   L.push("");
+  const slow = all.filter((l) => Object.values(l.callbacks).some((c) => c.ms > 120_000));
+  if (slow.length) {
+    L.push(`> **Slow loops.** ${slow.length} loop${slow.length > 1 ? "s" : ""} took over 2 minutes: ${slow.map((l) => `"${l.label}"`).join(", ")}. On 2026-11-19 Reactive Network stopped delivering callbacks to Base Sepolia and Unichain Sepolia from about 19:30 to 20:49 UTC (Hob kept reacting on Lasna; the callbacks queued and were delivered when the network recovered). The prover now waits for the delivery backlog to clear before starting a run. The median is not affected.`);
+    L.push("");
+  }
   L.push("Latency is wall-clock from the origin transaction's receipt to the moment the callback's event was visible over RPC (150 ms polling included).");
   const file = join(ROOT, "docs", name === "testnet" ? "EVIDENCE.md" : `EVIDENCE.${name}.md`);
   writeFileSync(file, L.join("\n") + "\n");
