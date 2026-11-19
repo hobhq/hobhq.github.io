@@ -612,6 +612,7 @@ function renderDashboard() {
     node.classList.remove("mood-calm", "mood-tight", "mood-frozen", "mood-alert");
     node.classList.add(`mood-${moodNow}`);
   }
+  $("hero-say").classList.remove("loading");
   html("hero-say", esc(hobSays(say)));
   renderChrome(loops);
   renderNodes(loops, say);

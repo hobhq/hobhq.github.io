@@ -496,3 +496,6 @@ h1 { font-size: 36px; line-height: 44px; }
 
 .p-role { white-space: nowrap; }
 .p-id { min-width: 0; }
+.hero-say.loading { color: var(--rose); animation: pulse-text 1.4s ease-in-out infinite; }
+@keyframes pulse-text { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .hero-say.loading { animation: none; } }
