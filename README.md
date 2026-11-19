@@ -105,20 +105,39 @@ Static HTML + CSS + JS with viem (no framework, no build step). On `127.0.0.1` i
 
 ```bash
 cp .env.example .env    # three throwaway testnet keys (alice, bob, agent)
-node ops/deploy.mjs testnet
-node ops/prove.mjs testnet              # every loop with tx hashes → docs/EVIDENCE.md
-node ops/prove.mjs testnet --story      # same run, narrated chapter by chapter (used for the video)
+PERIOD_SECONDS=3600 node ops/deploy.mjs testnet           # the public demo house uses a 1-hour period
+node ops/prove.mjs testnet                                # one full story run → docs/EVIDENCE.md
+node ops/prove.mjs testnet --plan story,scenarios,story   # several runs, one per period
+node ops/prove.mjs testnet --story                        # the story, narrated chapter by chapter (video)
 # dashboard: http://127.0.0.1:5173/?net=testnet  ·  published: https://hobhq.github.io/
 ```
 
-Evidence of the live run: **[docs/EVIDENCE.md](docs/EVIDENCE.md)**.
+**Why a 1-hour period on testnet.** In production a period is a month (`PERIOD_SECONDS` is a constructor
+argument; the contracts don't change). With one hour, judges can watch the reset happen on-chain: when a
+period ends, both chains report groceries NORMAL with zero spent, and nobody sends a transaction for it.
+The prover records each of these rollovers.
+
+**What the prover records.** Every run needs an unused period; if the current one already has spending,
+the prover waits for the next one and records the rollover. Two kinds of run:
+
+| Run | What it proves |
+|---|---|
+| `story` | rules ratified and mirrored → Pip added → shopping on two chains summed → Pip's cross-chain burst frozen everywhere → only an adult unfreezes → TIGHT at 80% with per-chain slices → FROZEN at the cap → an extra purchase refused |
+| `scenarios` | co-sign above the line (and Pip can't co-sign itself) · a rule changed mid-period reaches Unichain · a paused category is refused on the other chain · a member voted out is refused on the other chain · the pace limit is exact (6 buys pass, the 7th freezes) · one payment can close a category while the others stay open |
+
+Each loop is origin tx → Reactive tx → callback tx(s) with measured latency; each refusal is a check.
+Results: **[docs/EVIDENCE.md](docs/EVIDENCE.md)** and `docs/evidence.testnet.json`, also shown in the
+dashboard under **For Judges → Scenarios proven on-chain**.
+
+**Verified source.** The vaults and the reactive contract are verified on [Sourcify](https://sourcify.dev)
+(exact match), so the code on the explorers is the code in this repository.
 
 ## Honest limits
 
 - **Overshoot window.** Between a purchase and the reaction landing, each chain can still spend within its local limits. The invariant fuzz bounds it by what is in flight; from the tighten line on, per-chain slices make it zero for new purchases.
 - **The velocity limits** are fixed at deploy, not voted by the household (v2: governed like rules). Right after registering the vaults the deployer calls `seal()`, and from then on nobody, including the deployer, can add a vault or change a limit.
 - **Funds leave only through `spend`** in a ratified category. A "transfer" category is how a household moves money out.
-- **Modes escalate within a period and never step back.** A rule change mid-month applies its new numbers, but a category that is already TIGHT/FROZEN stays so until the next period.
+- **Modes escalate within a period and never step back.** A rule change mid-period applies its new numbers, but a category that is already TIGHT/FROZEN stays so until the next period.
 - **Testnet and a mock token.** Not audited.
 
 ## Repository

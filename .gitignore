@@ -10,3 +10,5 @@ ops/node_modules/
 *.log
 .vscode/
 .idea/
+web/evidence.local.json
+docs/evidence.local.json

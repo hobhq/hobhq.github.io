@@ -499,3 +499,10 @@ h1 { font-size: 36px; line-height: 44px; }
 .hero-say.loading { color: var(--rose); animation: pulse-text 1.4s ease-in-out infinite; }
 @keyframes pulse-text { 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .hero-say.loading { animation: none; } }
+
+/* ---------------------------------------------------------------- recorded evidence */
+.scen td { vertical-align: top; }
+.scen td.lk, .steplog.rec li { font-size: 12px; line-height: 1.7; word-break: break-word; }
+.scen td:first-child { min-width: 260px; }
+.steplog.rec li { margin-bottom: 8px; }
+#recorded-sec .sub { margin-top: 20px; }

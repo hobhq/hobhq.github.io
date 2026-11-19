@@ -28,6 +28,7 @@ jobs:
           mkdir _site
           cp web/index.html web/app.js web/style.css web/abi.json web/deployment.testnet.json _site/
           mkdir _site/vendor && cp web/vendor/viem.js _site/vendor/
+          if [ -f web/evidence.testnet.json ]; then cp web/evidence.testnet.json _site/; fi
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

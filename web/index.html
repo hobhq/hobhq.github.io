@@ -106,7 +106,7 @@
     <div class="tab" id="tab-home">
       <section class="glass-card section">
         <div class="sec-head">
-          <div><span class="eyebrow">Unified cross-chain ledger</span><h2 id="ledger-title">House groceries this month</h2></div>
+          <div><span class="eyebrow">Unified cross-chain ledger</span><h2 id="ledger-title">House groceries this <span class="pw">month</span></h2></div>
           <div class="legend" id="ledger-legend"></div>
         </div>
         <div id="ledger"></div>
@@ -173,7 +173,7 @@
           <div id="rules" class="rules"></div>
         </section>
         <section class="glass-card section span2">
-          <div class="sec-head"><div><span class="eyebrow">Both chains together</span><h2>This month</h2></div><span class="meta" id="period-label"></span></div>
+          <div class="sec-head"><div><span class="eyebrow">Both chains together</span><h2>This <span class="pw">month</span></h2></div><span class="meta" id="period-label"></span></div>
           <div id="budgets"></div>
         </section>
         <section class="glass-card section">
@@ -212,7 +212,7 @@
                 <li>Pip's 3 buys on Base and 4 on Unichain each look fine. Nobody notices 7.</li>
                 <li>Groceries can be overspent by shopping on both chains.</li>
                 <li>A rule changed on Base has to be re-entered on Unichain by hand, by someone with admin rights there.</li>
-                <li>The month resets only if a keeper or cron job remembers.</li>
+                <li>The <span class="pw">month</span> resets only if a keeper or cron job remembers.</li>
               </ul>
             </div>
             <div class="col with">
@@ -234,6 +234,13 @@
         <section class="glass-card section span2">
           <div class="sec-head"><div><span class="eyebrow">Read from the chains right now</span><h2>Live numbers</h2></div></div>
           <div class="stats" id="live-stats"></div>
+        </section>
+        <section class="glass-card section span2" id="recorded-sec" hidden>
+          <div class="sec-head"><div><span class="eyebrow">Recorded by <code>ops/prove.mjs</code> on this deployment</span><h2>Scenarios proven on-chain</h2></div><span class="meta" id="recorded-meta"></span></div>
+          <div class="stats" id="recorded-stats"></div>
+          <div class="table-wrap"><table class="contracts scen" id="recorded"></table></div>
+          <h3 class="sub">Automatic period rollovers <span class="muted small">(no transaction sent by anyone)</span></h3>
+          <div class="table-wrap"><table class="contracts" id="rollovers"></table></div>
         </section>
         <section class="glass-card section span2">
           <div class="sec-head"><div><span class="eyebrow">Deployment</span><h2>Contracts</h2></div><span class="meta" id="deployed-at"></span></div>

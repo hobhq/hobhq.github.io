@@ -30,6 +30,10 @@ const DEMO_KEYS = LOCAL
     }
   : null;
 
+// testnet runs a short period so judges can watch a rollover; 30 days is the production setting
+const PW = Number(D.period) >= 28 * 86400 ? "month" : "period";
+const PERIOD_HUMAN = Number(D.period) >= 86400 ? `${Math.round(Number(D.period) / 86400)} days` : Number(D.period) >= 3600 ? `${Math.round(Number(D.period) / 3600)} h` : `${Math.round(Number(D.period) / 60)} min`;
+for (const el of document.querySelectorAll(".pw")) el.textContent = PW;
 const SHOP = "0x000000000000000000000000000000000000c0DE";
 const CATS = [
   { id: 0, name: "Groceries" },
@@ -411,9 +415,9 @@ function hobSays(l) {
   if (!l) return "All quiet. I'm watching Base and Unichain.";
   const h = l.headline;
   const o = l.origin;
-  if (h?.name === "CategoryEscalated" && BigInt(h.a.period) !== S.period) return "A new month started. Every category is back to NORMAL, and nobody had to reset anything.";
+  if (h?.name === "CategoryEscalated" && BigInt(h.a.period) !== S.period) return `A new ${PW} started. Every category is back to NORMAL, and nobody had to reset anything.`;
   if (h?.name === "VelocityBreach") return `${nameOf(h.a.member)} made ${h.a.txInWindow} buys in an hour across both chains. I froze ${nameOf(h.a.member)} on every chain.`;
-  if (h?.name === "CategoryEscalated" && Number(h.a.mode) === 2) return `That's the cap: ${usd(h.a.householdSpent)} of ${usd(h.a.cap)}. ${CATS[h.a.category]?.name} is frozen on every chain until next month.`;
+  if (h?.name === "CategoryEscalated" && Number(h.a.mode) === 2) return `That's the cap: ${usd(h.a.householdSpent)} of ${usd(h.a.cap)}. ${CATS[h.a.category]?.name} is frozen on every chain until the next ${PW}.`;
   if (h?.name === "CategoryEscalated") return `Careful: ${CATS[h.a.category]?.name} is at ${usd(h.a.householdSpent)} of ${usd(h.a.cap)}. I split what's left between Base and Unichain.`;
   if (h?.name === "RulesMirrored") return `Alice and Bob agreed on a new ${CATS[h.a.category]?.name?.toLowerCase()} rule. I copied it to Unichain.`;
   if (h?.name === "MemberMirrored") {
@@ -426,6 +430,27 @@ function hobSays(l) {
 }
 const hotLoop = (l) => !!l?.headline && (l.headline.name === "VelocityBreach" || l.headline.name === "CategoryEscalated");
 
+
+// Decisions Hob already made on Reactive that a chain has not applied yet (callbacks in flight).
+function pendingDeliveries() {
+  const out = [];
+  const lastEv = (pred) => [...EV].reverse().find(pred);
+  for (const r of S.rules) if (r.vHome > r.vMirror) {
+    const e = lastEv((x) => x.name === "RulesMirrored" && Number(x.a.category) === r.cat.id);
+    if (e) out.push({ what: `${r.cat.name} rule v${r.vHome}`, to: "Unichain", ts: e.ts });
+  }
+  for (const m of S.members) if (m.role !== m.roleMirror) {
+    const e = lastEv((x) => x.name === "MemberMirrored" && x.a.member.toLowerCase() === m.m);
+    if (e) out.push({ what: `${nameOf(m.m)}'s membership`, to: "Unichain", ts: e.ts });
+  }
+  for (const b of S.budget) {
+    const e = lastEv((x) => x.name === "CategoryEscalated" && Number(x.a.category) === b.cat.id && BigInt(x.a.period) === S.period);
+    if (!e) continue;
+    for (const [k, label] of [["base", "Base"], ["uni", "Unichain"]]) if (b[k].mode < Number(e.a.mode)) out.push({ what: `${b.cat.name} ${MODE[e.a.mode]}`, to: label, ts: e.ts });
+  }
+  return out;
+}
+
 function renderChrome(loops) {
   const lats = loops.filter((l) => l.callbacks.length).map((l) => l.latency).filter((x) => x !== null).sort((a, b) => a - b);
   const med = lats.length ? lats[Math.floor(lats.length / 2)] : null;
@@ -434,7 +459,16 @@ function renderChrome(loops) {
     `<span class="chip live"><span class="dot on"></span>${LOCAL ? "Reactive (local relayer)" : "Reactive Lasna"}: online</span>` +
     `<span class="chip">${ms("speed")}Median loop: ${med === null ? "–" : med <= 0 ? "<1 s" : `${med} s`}</span>` +
     `<span class="chip">${ms("verified_user")}Quorum: ${S.quorum} of ${adults} adults</span>` +
-    `<span class="chip">${ms("lock")}Setup sealed · no admin</span>`);
+    `<span class="chip">${ms("lock")}Setup sealed · no admin</span>` +
+    (() => {
+      const pend = pendingDeliveries();
+      if (!pend.length) return "";
+      const age = Math.max(0, Number(S.now) - Math.min(...pend.map((p) => p.ts)));
+      const list = esc(pend.map((p) => `${p.what} → ${p.to}`).join(", "));
+      return age > 120
+        ? `<span class="chip lag" title="${list}">${ms("schedule")}Reactive delivery delayed: ${pend.length} callback${pend.length > 1 ? "s" : ""} pending for ${Math.round(age / 60)} min</span>`
+        : `<span class="chip" title="${list}">${ms("sync")}${pend.length} callback${pend.length > 1 ? "s" : ""} in flight</span>`;
+    })());
   html("rail-chains",
     `<div class="rc-title"><span>Chain sync</span><span>live</span></div>` +
     [C.base, C.uni, C.reactive].map((c) => `<div class="rc-row"><i class="cdot ${c.key}"></i><b>${c.key === "reactive" ? (LOCAL ? "Reactive" : "Lasna") : c.short}</b><span>#${heads[c.key] ?? "…"}</span></div>`).join(""));
@@ -495,7 +529,9 @@ function renderLedger() {
     html("ledger", `<p class="empty">No house rule yet. Alice and Bob agree on one in chapter 1 of the story.</p>`);
     return;
   }
-  const days = Math.max(0, Math.ceil(Number(S.periodStart + BigInt(D.period) - S.now) / 86400));
+  const toReset = Math.max(0, Number(S.periodStart + BigInt(D.period) - S.now));
+  const days = Math.ceil(toReset / 86400);
+  const resetIn = toReset >= 86400 ? `${days} day${days === 1 ? "" : "s"}` : toReset >= 3600 ? `${Math.floor(toReset / 3600)} h ${Math.ceil((toReset % 3600) / 60)} min` : `${Math.ceil(toReset / 60)} min`;
   const tl = pct(g, g.threshold);
   html("ledger", `<div class="lg-bar">
       <div class="seg base" style="width:${pct(g, g.byBase)}%">${g.byBase > 0n ? `Base ${money(g.byBase)}` : ""}</div>
@@ -503,7 +539,7 @@ function renderLedger() {
       <div class="tline" style="left:${tl}%"></div>
       <span class="left">${money(left)} remaining</span>
     </div>
-    <div class="lg-meta"><span>House spend: ${pct(g, g.spent).toFixed(1)}% · tighten line ${money(g.threshold)}</span><span>Month resets by itself in ${days} day${days === 1 ? "" : "s"}</span><span>Cap: ${money(g.cap)} USDC</span></div>
+    <div class="lg-meta"><span>House spend: ${pct(g, g.spent).toFixed(1)}% · tighten line ${money(g.threshold)}</span><span>${PW === "month" ? "Month" : "Period"} resets by itself in ${resetIn}</span><span>Cap: ${money(g.cap)} USDC</span></div>
     ${r.cap > 0n ? `<div class="lg-rent"><div class="np-h" style="display:flex;justify-content:space-between;font-size:12.5px"><span class="muted">Rent · one payment can be the whole cap, so it is tight from the first payment</span><span class="mono">${money(r.spent)} / ${money(r.cap)}</span></div><div class="bar"><div class="seg base" style="width:${pct(r, r.byBase)}%"></div><div class="seg uni" style="width:${pct(r, r.byUni)}%"></div></div></div>` : ""}`);
 }
 
@@ -513,7 +549,7 @@ function renderChart() {
   const pts = EV.filter((e) => e.name === "LedgerUpdated" && Number(e.a.category) === G && BigInt(e.a.period) === S.period).map((e) => ({ t: e.ts, v: Number(formatUnits(e.a.householdSpent, 6)) }));
   const marks = EV.filter((e) => (e.name === "CategoryEscalated" && Number(e.a.category) === G && BigInt(e.a.period) === S.period) || (e.name === "VelocityBreach" && BigInt(e.ts) >= S.periodStart));
   if (!pts.length || g.cap === 0n) {
-    html("chart", `<p class="empty muted">The line starts with the first purchase this month.</p>`);
+    html("chart", `<p class="empty muted">The line starts with the first purchase this ${PW}.</p>`);
     html("chart-note", "");
     return;
   }
@@ -543,7 +579,7 @@ function renderChart() {
     <span class="cl" style="position:absolute;right:0;top:${(y(cap) / H) * 100}%;transform:translateY(-120%);font-size:10.5px;color:#ff8a80">cap ${usd(g.cap)}</span>
     <span class="cl" style="position:absolute;right:0;top:${(y(line) / H) * 100}%;transform:translateY(-120%);font-size:10.5px;color:#ffb547">tighten ${usd(g.threshold)}</span>
     ${mk.map((m) => `<span style="position:absolute;left:${m.left}%;top:${m.top}%;transform:translate(-50%,-140%);padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:600;white-space:nowrap;background:${m.red ? "#e63946" : "#ffb547"};color:${m.red ? "#fff" : "#2a1800"};box-shadow:0 0 12px ${m.red ? "rgba(255,83,91,.6)" : "rgba(255,181,71,.5)"}">${m.label}</span>`).join("")}`);
-  html("chart-note", marks.length ? `${ms("warning", "sm")} ${marks.length} intervention${marks.length > 1 ? "s" : ""} by Hob this month` : "no interventions this month");
+  html("chart-note", marks.length ? `${ms("warning", "sm")} ${marks.length} intervention${marks.length > 1 ? "s" : ""} by Hob this ${PW}` : `no interventions this ${PW}`);
 }
 
 function renderRoster() {
@@ -557,11 +593,11 @@ function renderRoster() {
     const last = lastSpend((e) => e.a.member.toLowerCase() === WHO[key].toLowerCase());
     const rows = isPip
       ? `<div><span>House pace limit</span><b>${pace.maxTx} buys / ${Math.round(pace.window / 3600)} h, all chains</b></div>
-         <div><span>Spent this month</span><b>${money(spent)}</b></div>
+         <div><span>Spent this ${PW}</span><b>${money(spent)}</b></div>
          <div><span>Can approve or co-sign</span><b>never</b></div>
          <div><span>If the pace breaks</span><b>frozen ${Math.round(pace.freezeFor / 3600)} h, every chain</b></div>`
       : `<div><span>Vote</span><b>1 of ${S.quorum} needed for a rule</b></div>
-         <div><span>Spent this month</span><b>${money(spent)}</b></div>
+         <div><span>Spent this ${PW}</span><b>${money(spent)}</b></div>
          <div><span>Last spend</span><b>${last ? `${usd(last.a.amount)} on ${last.c.short}` : "none yet"}</b></div>
          <div><span>Can</span><b>propose · approve · co-sign · unfreeze</b></div>`;
     const tag = isPip ? (frozen ? `<span class="p-tag frozen">Frozen · ${hoursLeft(r.until)}</span>` : `<span class="p-tag ai">AI agent</span>`) : `<span class="p-tag">Full authority</span>`;
@@ -736,21 +772,84 @@ function renderHood(loops) {
     [withCb.length, "loops that changed a chain"],
   ].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join(""));
   const crit = [
-    ["Execution", `${loops.length} reactive transactions and ${cbCount} callbacks seen on this deployment. Every loop under <i>The house → What Hob did</i> links its origin, Reactive and callback transactions. The full run is in <code>docs/EVIDENCE.md</code>.`],
+    ["Execution", `${loops.length} reactive transactions and ${cbCount} callbacks seen on this deployment, read live from the chains. Every loop under <i>The House</i> links its origin, Reactive and callback transactions. <i>Scenarios proven on-chain</i> below lists each recorded situation, its checks (refusals included) and the automatic rollovers; the same runs are in <code>docs/EVIDENCE.md</code>.`],
     ["Integration", "Hob lives on Reactive, the only place both chains meet. It holds the household ledger, counts Pip's pace across chains and copies the adults' decisions. Remove it and every cross-chain guarantee is gone (see the comparison above)."],
     ["Usefulness", "Shared money with shared rules: two adults decide, Pip (the AI shopper) can't overrule them, and Hob's response escalates (NORMAL → TIGHT → FROZEN) instead of a single kill switch."],
     ["Craft", "57 tests including fuzzed invariants, 17 of 17 mutants caught, a sealed setup with no admin keys, stale and duplicate messages handled without paying for failed callbacks, and a heaviest <code>react()</code> of ~493k gas, under the 900k cap."],
   ];
   html("criteria", crit.map(([k, v]) => `<div class="crit"><h3>${k}</h3><p>${v}</p></div>`).join(""));
 
-  const row = (c, what, addr, tx) => `<tr><td><i class="cdot ${c.key}"></i>${c.name}</td><td>${what}</td><td>${addrLink(c, addr)}</td><td>${tx ? txLink(c, tx) : ""}</td></tr>`;
+  const src = (c, addr) => (LOCAL ? "" : `<a class="tx" href="https://sourcify.dev/#/lookup/${addr}" target="_blank" rel="noopener">Sourcify</a>`);
+  const row = (c, what, addr, tx) => `<tr><td><i class="cdot ${c.key}"></i>${c.name}</td><td>${what}</td><td>${addrLink(c, addr)}</td><td>${tx ? txLink(c, tx) : ""}</td><td>${src(c, addr)}</td></tr>`;
   html("contracts",
-    `<thead><tr><th>Chain</th><th>Contract</th><th>Address</th><th>Deploy tx</th></tr></thead><tbody>` +
+    `<thead><tr><th>Chain</th><th>Contract</th><th>Address</th><th>Deploy tx</th><th>Verified source</th></tr></thead><tbody>` +
     row(C.reactive, "Hob, the reactive contract (ledger, pace, copying decisions)", C.reactive.address, C.reactive.deployTx) +
     row(C.base, "House vault, home (the adults decide here)", C.base.address, C.base.deployTx) +
     row(C.uni, "House vault, mirror", C.uni.address, C.uni.deployTx) +
     `</tbody>`);
   $("deployed-at").textContent = `deployed ${new Date(D.deployedAt).toLocaleString()}`;
+}
+
+
+// ================================================================== recorded evidence (ops/prove.mjs)
+// Optional file next to the page; only used when it belongs to this deployment.
+let REC = null;
+fetch(`evidence.${NET}.json`)
+  .then((r) => (r.ok ? r.json() : null))
+  .then((j) => {
+    if (j && j.reactive?.toLowerCase() === C.reactive.address.toLowerCase()) REC = j;
+    renderRecorded();
+    if (S) renderSteps();
+  })
+  .catch((e) => console.warn("recorded evidence not shown:", e.message));
+const chainByKey = (k) => (k === "reactive" ? C.reactive : C[k]);
+const secs = (ms) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(1)} s`);
+function loopLinks(l) {
+  const cbs = Object.entries(l.callbacks ?? {}).map(([k, v]) => `${chainByKey(k).short} ${txLink(chainByKey(k), v.hash)}`).join(" · ");
+  return `${chainByKey(l.origin.chain).short} ${txLink(chainByKey(l.origin.chain), l.origin.hash)} → Hob ${txLink(C.reactive, l.reactive.hash)}${cbs ? ` → ${cbs}` : ""}`;
+}
+function renderRecorded() {
+  if (!REC || !REC.runs?.length) return;
+  $("recorded-sec").hidden = false;
+  const all = REC.runs.flatMap((r) => r.loops);
+  const lats = all.flatMap((l) => Object.values(l.callbacks ?? {}).map((c) => c.ms)).sort((a, b) => a - b);
+  const checks = REC.runs.flatMap((r) => r.checks ?? []);
+  html("recorded-stats", [
+    [REC.runs.length, "full runs (story and scenarios)"],
+    [all.length, "loops, every one complete"],
+    [lats.length, "callbacks delivered"],
+    [secs(lats[Math.floor(lats.length / 2)]), `median origin → callback (p95 ${secs(lats[Math.min(lats.length - 1, Math.floor(lats.length * 0.95))])})`],
+    [`${checks.filter((c) => c.ok).length}/${checks.length}`, "checks passed, refusals included"],
+    [REC.rollovers.length, "automatic rollovers observed"],
+  ].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join(""));
+  const last = REC.runs[REC.runs.length - 1];
+  $("recorded-meta").textContent = `last run ${new Date(last.finishedAt).toLocaleString()}`;
+  const rows = [];
+  const story = [...REC.runs].reverse().find((r) => r.kind === "story");
+  if (story) rows.push(`<tr><td><b>The story</b><br><span class="muted small">rules → Pip → shopping on two chains → Pip frozen → unfreeze → TIGHT → FROZEN</span></td><td>✓ ${story.loops.length} loops</td><td>${secs(story.medianMs)}</td><td class="lk">${loopLinks(story.loops[4] ?? story.loops[0])}</td></tr>`);
+  for (const sc of REC.scenarios ?? []) {
+    const run = [...REC.runs].reverse().find((r) => r.loops.some((l) => l.scenario === sc.key));
+    if (!run) continue;
+    const ls = run.loops.filter((l) => l.scenario === sc.key);
+    const cs = (run.checks ?? []).filter((c) => c.scenario === sc.key);
+    const ok = ls.every((l) => l.ok) && cs.every((c) => c.ok);
+    const key = ls.find((l) => Object.keys(l.callbacks ?? {}).length) ?? ls[ls.length - 1];
+    rows.push(`<tr><td><b>${esc(sc.title)}</b><br><span class="muted small">${esc(sc.proves)}</span>${cs.length ? `<br><span class="small">${cs.map((c) => `${c.ok ? "✓" : "✗"} ${esc(c.label)}`).join("<br>")}</span>` : ""}</td><td>${ok ? "✓" : "✗"} ${ls.length} loop${ls.length === 1 ? "" : "s"}</td><td>${secs(run.medianMs)}</td><td class="lk">${key ? loopLinks(key) : ""}</td></tr>`);
+  }
+  html("recorded", `<thead><tr><th>Situation</th><th>Result</th><th>Median</th><th>Key loop (origin → Hob → callbacks)</th></tr></thead><tbody>${rows.join("")}</tbody>`);
+  html("rollovers", REC.rollovers.length
+    ? `<thead><tr><th>Period</th><th>Before (Base / Unichain)</th><th>After</th><th>Seen at</th></tr></thead><tbody>${REC.rollovers.map((r) => `<tr><td>#${r.fromPeriod} → #${r.toPeriod}</td><td>${r.before.base}${r.before.spentBase !== undefined ? ` (${r.before.spentBase} spent)` : ""} / ${r.before.uni}${r.before.spentUni !== undefined ? ` (${r.before.spentUni} spent)` : ""}</td><td>NORMAL (0) / NORMAL (0)</td><td>${new Date(r.observedAt).toLocaleString()}</td></tr>`).join("")}</tbody>`
+    : `<tbody><tr><td class="muted">The first rollover is recorded when a run waits for the next period.</td></tr></tbody>`);
+}
+// chapter → loops of the latest recorded story run (chapter 8 shows the rollovers)
+const CHAPTER_LOOPS = [[0, 1], [2], [3], [4], [5], [6], [7], []];
+function recordedChapter(i) {
+  const story = REC && [...REC.runs].reverse().find((r) => r.kind === "story");
+  if (!story) return "";
+  const items = CHAPTER_LOOPS[i].map((k) => story.loops[k]).filter(Boolean).map((l) => `<li><b>${esc(l.label)}</b><br>${loopLinks(l)}${Object.keys(l.callbacks ?? {}).length ? ` <span class="muted">(${Object.values(l.callbacks).map((c) => secs(c.ms)).join(" / ")})</span>` : ""}</li>`);
+  if (i === CHAPTER_LOOPS.length - 1) for (const r of REC.rollovers.slice(-3)) items.push(`<li><b>Period #${r.fromPeriod} → #${r.toPeriod}</b>: groceries ${r.before.base} / ${r.before.uni} → NORMAL on both chains, ${new Date(r.observedAt).toLocaleString()}. No transaction.</li>`);
+  if (!items.length) return "";
+  return `<h3 class="sub">Recorded on testnet (run ${story.run}, ${new Date(story.startedAt).toLocaleString()})</h3><ol class="steplog rec">${items.join("")}</ol>`;
 }
 
 // ================================================================== actions
@@ -878,7 +977,7 @@ const STEPS = [
   {
     title: "Agree on the rules",
     lead: "No rule exists until two adults agree.",
-    story: "Alice proposes a groceries budget: <b>1,000 USDC a month</b>, at most <b>200 per purchase</b>, and a second adult for anything above <b>150</b>. Nothing changes until Bob approves it.",
+    story: `Alice proposes a groceries budget: <b>1,000 USDC a ${PW}</b>, at most <b>200 per purchase</b>, and a second adult for anything above <b>150</b>. Nothing changes until Bob approves it.`,
     reactive: "Base emits <code>RulesRatified</code>. Hob picks it up and calls <code>cbApplyRules</code> on the Unichain vault. Nobody sends a transaction to Unichain, and nobody has admin rights there.",
     action: "Alice proposes · Bob approves",
     checks: (s) => [
@@ -917,7 +1016,7 @@ const STEPS = [
     title: "Shop on two chains",
     lead: "Each chain sees only itself. Hob sees the house.",
     story: "Alice buys on <b>Base</b> and Bob buys on <b>Unichain</b>. Each vault only knows its own spending. The house budget is the <b>sum</b>, and only Hob can see that.",
-    reactive: "Every <code>Spent</code> event goes to Hob's <code>react()</code>, which adds it to the ledger for this month and category. Under the line nothing changes, so Hob sends <b>no callback</b> and pays for none.",
+    reactive: "Every <code>Spent</code> event goes to Hob's <code>react()</code>, which adds it to the ledger for this period and category. Under the line nothing changes, so Hob sends <b>no callback</b> and pays for none.",
     action: "Alice spends 40 on Base · Bob spends 30 on Unichain",
     secondary: { label: "Bob asks for 160 → Alice co-signs", run: cosignDemo },
     checks: (s) => [
@@ -1053,13 +1152,13 @@ const STEPS = [
     },
   },
   {
-    title: "A new month, by itself",
+    title: `A new ${PW}, by itself`,
     lead: "Set it and forget it.",
     story: LOCAL
-      ? "There's no keeper, no bot and no cron. The month rolls over and groceries are <b>NORMAL</b> again everywhere. On the local chains we can fast-forward 30 days."
-      : "There's no keeper, no bot and no cron. When the next period starts, groceries are <b>NORMAL</b> again everywhere.",
-    reactive: "Every <code>Spent</code> event carries its period id. Hob keeps a separate ledger per month, so a new month starts at zero without a scheduled job. A callback from an old month is ignored.",
-    action: LOCAL ? "Fast-forward 30 days (local chains)" : null,
+      ? `There's no keeper, no bot and no cron. The ${PW} rolls over and groceries are <b>NORMAL</b> again everywhere. On the local chains we can fast-forward ${PERIOD_HUMAN}.`
+      : `There's no keeper, no bot and no cron. When the next period starts, groceries are <b>NORMAL</b> again everywhere. In production a period is a month; this testnet house uses ${PERIOD_HUMAN} so you can watch it happen.`,
+    reactive: "Every <code>Spent</code> event carries its period id. Hob keeps a separate ledger per period, so a new period starts at zero without a scheduled job. A callback from an old period is ignored.",
+    action: LOCAL ? `Fast-forward ${PERIOD_HUMAN} (local chains)` : null,
     checks: (s) => [
       ["A new period started", firstPeriod !== null && s.period > firstPeriod, `period #${s.period}`],
       ["Groceries NORMAL on Base", s.budget[G].base.mode === 0],
@@ -1072,7 +1171,7 @@ const STEPS = [
           await fetch(c.rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
         }
       }
-      log("All three local chains moved forward 30 days");
+      log(`All three local chains moved forward ${PERIOD_HUMAN}`);
       await refresh();
       log(`Period #${S.period}: groceries ${MODE[S.budget[G].base.mode]} on Base, ${MODE[S.budget[G].uni.mode]} on Unichain. Nobody reset anything`);
       log("You can replay from step 3");
@@ -1112,9 +1211,9 @@ function renderSteps() {
     <h2 class="step-t">${st.title}</h2>
     <p class="story-p">${st.story}</p>
     <div class="rx-box">${HOB_MINI}<div><span class="rx-k">What Hob does, on Reactive Network</span><p>${st.reactive}</p></div></div>
-    ${LOCAL ? "" : `<p class="watch">Watching the demo house on testnet. The narrator runs these chapters from a terminal (<code>node ops/prove.mjs testnet --story</code>), and the checks below tick as the transactions land. The buttons only work from a member's wallet.</p>`}
+    ${LOCAL ? "" : `<p class="watch">Watching the demo house on testnet. The chapters are run from a terminal (<code>node ops/prove.mjs testnet --story</code>); the checks below are read live from the chains, and every recorded transaction is linked to its explorer. The buttons only work from a member's wallet.</p>`}
     <div class="step-act">
-      ${st.action ? `<button class="primary" data-run="${current}" ${dis ? "disabled" : ""}>${st.action}</button>` : ""}
+      ${st.action && (LOCAL || window.ethereum) ? `<button class="primary" data-run="${current}" ${dis ? "disabled" : ""}>${st.action}</button>` : ""}
       ${st.secondary ? `<button data-run2="${current}">${st.secondary.label}</button>` : ""}
       ${nextBtn}
       ${dis && st.action ? `<span class="muted small">${dis}</span>` : ""}
@@ -1122,6 +1221,7 @@ function renderSteps() {
     </div>
     <h3 class="sub">Watch for</h3>
     <ul class="checks">${checks.map(([label, ok, val]) => `<li class="${ok ? "ok" : ""}"><span class="ck">${ok ? "✓" : "○"}</span>${label}${val ? `<span class="val">${val}</span>` : ""}</li>`).join("")}</ul>
+    ${LOCAL ? "" : recordedChapter(current)}
     ${log.length ? `<h3 class="sub">What just happened</h3><ol class="steplog">${log.map((l) => `<li class="${l.err ? "err" : ""}">${esc(l.text)}${l.r ? ` ${txLink(l.r.chain, l.r.transactionHash)}` : ""}</li>`).join("")}</ol>` : ""}`);
 }
 
