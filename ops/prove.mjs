@@ -371,6 +371,19 @@ async function runScenarios() {
   scenario = "setup";
   await loop("Setup: groceries rule in force → mirrored", () => ratifyRule(G, groceries), "RulesMirrored", [{ chain: "uni", event: "RulesApplied", match: (a) => a.category === G }]);
   await loop("Setup: rent rule in force → mirrored", () => ratifyRule(RENT, rent), "RulesMirrored", [{ chain: "uni", event: "RulesApplied", match: (a) => a.category === RENT }]);
+  // Pip must be a member and not frozen (a previous run may have stopped half-way)
+  const pip = await viewVault("base", "members", [agent]);
+  if (Number(pip[0]) !== 2) {
+    await loop("Setup: Pip is a member again → known on Unichain", async () => {
+      const pid = await proposalId("base");
+      await tx("base", "alice", "proposeMember", [agent, 2]);
+      return tx("base", "bob", "approveProposal", [pid]);
+    }, "MemberMirrored", [{ chain: "uni", event: "MemberSynced", match: (a) => a.member.toLowerCase() === agent.toLowerCase() && Number(a.role) === 2 }]);
+  } else if (Number(pip[1]) > (await chainNow())) {
+    await loop("Setup: Pip's old freeze lifted → lifted on Unichain", () => tx("base", "alice", "unfreezeMember", [agent]), "MemberMirrored", [
+      { chain: "uni", event: "MemberSynced", match: (a) => a.member.toLowerCase() === agent.toLowerCase() && a.unfreeze },
+    ]);
+  }
 
   head("cosign");
   const id = await viewVault("uni", "pendingCount");
@@ -549,7 +562,8 @@ async function main() {
         await runScenarios();
       }
     } catch (e) {
-      error = e.shortMessage ?? e.message ?? String(e);
+      const name = (function find(x, d = 0) { return !x || d > 6 ? null : x.data?.errorName ?? x.errorName ?? find(x.cause, d + 1); })(e);
+      error = `${e.shortMessage ?? e.message ?? String(e)}${name ? ` (${name})` : ""}`;
       console.log(`✗ Run stopped: ${error}`);
     }
     scenario = null;
