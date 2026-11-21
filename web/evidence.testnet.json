@@ -937,6 +937,937 @@
       "callbacks": 13,
       "medianMs": 3114,
       "p95Ms": 4000
+    },
+    {
+      "run": 3,
+      "kind": "story",
+      "period": 9,
+      "startedAt": "2026-11-21T20:09:51.328Z",
+      "finishedAt": "2026-11-21T20:10:51.713Z",
+      "loops": [
+        {
+          "label": "Rule ratified on Base (2 of 2 adults) → mirrored to Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0x2e31d0cbe939fda0d7c55d153292e48f74242c30da7c7aa3cf0a5cf51b2f0c30",
+            "block": 61849627,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x2b0ab1e4f402f09a43743de6ea0882ae2105cbb28ba079b1b800365874786427",
+            "block": 8918725,
+            "args": {
+              "category": 0,
+              "version": 5,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x3a0eb9d04387f617050a0b497850cc297289b3f24ddebea6672f69bea72a1653",
+              "block": 68439368,
+              "args": {
+                "category": 0,
+                "version": 5,
+                "monthlyCap": 1000000000
+              },
+              "ms": 3782
+            }
+          }
+        },
+        {
+          "label": "Rent rule (one payment may be the whole cap) → mirrored",
+          "ok": true,
+          "origin": {
+            "hash": "0xb6b80035e53d6bcdf9180e8877151ab1066f88abd52f21d2de525b0524e7ffc6",
+            "block": 61849661,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0xc470254574b838555a7088b72845b010bc5cd81bbe58da18c3a1a7db7db20861",
+            "block": 8918732,
+            "args": {
+              "category": 1,
+              "version": 5,
+              "cap": 2000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0xa214444000d77425eeba316b4aa8a046e4ac9d6f1a38f95cfd5340010113a8ea",
+              "block": 68439375,
+              "args": {
+                "category": 1,
+                "version": 5,
+                "monthlyCap": 2000000000
+              },
+              "ms": 2693
+            }
+          }
+        },
+        {
+          "label": "Pip added by vote → known on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0x2e3be7fda394750d33a5d3b1fea11815e9c8d47916051b47c97a811f63ed2c1c",
+            "block": 61849688,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0xbde0df7c97c46716f79f29bfa72081c545eea8ddab9a78803ded1d715e1420e7",
+            "block": 8918737,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "role": 2,
+              "unfreeze": false
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x4259b9db5806e1a3622daa4da42bc14c2949fd5344d7b6d41a486c5071eb66a0",
+              "block": 68439380,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "role": 2,
+                "unfreeze": false,
+                "nonce": 10
+              },
+              "ms": 3088
+            }
+          }
+        },
+        {
+          "label": "Alice on Base + Bob on Unichain → one household ledger",
+          "ok": true,
+          "origin": {
+            "hash": "0x123cdaa1cb08818ba92a4c3da258a34f7f47118bce7c1df078b47ca599174feb",
+            "block": 68439385,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0x028bfd0bbdab092627e9401106cfb45397dc01a7a94a381681919da12fec21e5",
+            "block": 8918742,
+            "args": {
+              "period": 9,
+              "category": 0,
+              "chainId": 84532,
+              "member": "0xED7fc2Fd462EaeB5616b8421A6D646EF7F0884Cb",
+              "amount": 40000000,
+              "householdSpent": 40000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {}
+        },
+        {
+          "label": "Pip bursts 3 buys on Base + 4 on Unichain → frozen on both",
+          "ok": true,
+          "origin": {
+            "hash": "0x5284a655038bb54c2dff3d333e2f634d40add16fd9935f788557e7366f27c5c4",
+            "block": 68439399,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0x4478fdd55e968cffa4d6a05c6825a1090ed7e0b005d6524f9b9cd8efeb585070",
+            "block": 8918757,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amountInWindow": 140000000,
+              "txInWindow": 7,
+              "frozenUntil": 1795378227
+            }
+          },
+          "callbacks": {
+            "base": {
+              "hash": "0x613df01f358c3ca7ad96af12a0042677ed56c5071e94863b9c70fbe360130c48",
+              "block": 61849799,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "until": 1795378227
+              },
+              "ms": 2161
+            },
+            "uni": {
+              "hash": "0x76163abc072388d186102eaee31d5f3799c3169d63e29625c97e035640137109",
+              "block": 68439401,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "until": 1795378227
+              },
+              "ms": 2468
+            }
+          }
+        },
+        {
+          "label": "Alice lifts Pip's freeze on Base → lifted on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0x1f280f559626590c731f8795d119ae19e27ec1f97aa90d892cb576335e24dd81",
+            "block": 61849817,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x27c41e94497dfa01817d3ad700e8089faa4978d110b00e1d03a45a3726f84eb6",
+            "block": 8918762,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "role": 2,
+              "unfreeze": true
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x2481c9bf876117620bd163729c3a56e03087154d6ae7c7d6b6021d9b294398c9",
+              "block": 68439406,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "role": 2,
+                "unfreeze": true,
+                "nonce": 11
+              },
+              "ms": 2561
+            }
+          }
+        },
+        {
+          "label": "Household crosses 80% → TIGHT on both chains, remaining split per chain",
+          "ok": true,
+          "origin": {
+            "hash": "0x6c29c656e0b7a7ad2a2196e0a9054e4334c03a86bb306f116684e99f0dd2abbb",
+            "block": 68439413,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0xfe3ec907445489315c96ac8710040723374c8fa3fa03eb0e177a2c0a9011f298",
+            "block": 8918771,
+            "args": {
+              "period": 9,
+              "category": 0,
+              "mode": 1,
+              "householdSpent": 910000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {
+            "base": {
+              "hash": "0x92e688fde7c23dbc67c87a05991e94863ee8f0697057067152fe188696d77a5a",
+              "block": 61849872,
+              "args": {
+                "category": 0,
+                "period": 9,
+                "mode": 1,
+                "limit": 705000000
+              },
+              "ms": 2052
+            },
+            "uni": {
+              "hash": "0x00e36fefecf751dc1b66300cfe5336c12d3d3ac6294e9a584a5368d0276f17d1",
+              "block": 68439416,
+              "args": {
+                "category": 0,
+                "period": 9,
+                "mode": 1,
+                "limit": 295000000
+              },
+              "ms": 4118
+            }
+          }
+        },
+        {
+          "label": "Each chain spends its slice → household cap reached → FROZEN on both",
+          "ok": true,
+          "origin": {
+            "hash": "0x4b30f30b452e82d20ef0ba9f986a19336f2fcb4baf7028d3784640e957dfe051",
+            "block": 68439421,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0xf93731ded4e25d638de73d1d52ec68a421dce1ccb052f0b8ae41a0c2d468d13d",
+            "block": 8918778,
+            "args": {
+              "period": 9,
+              "category": 0,
+              "mode": 2,
+              "householdSpent": 1000000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {
+            "base": {
+              "hash": "0x75a597235fbcb2c9693f77e613fb61a81675892a19eeb5d24151beb199f32835",
+              "block": 61849908,
+              "args": {
+                "category": 0,
+                "period": 9,
+                "mode": 2,
+                "limit": 705000000
+              },
+              "ms": 1462
+            },
+            "uni": {
+              "hash": "0x0b8de8a90eecf7810c81b80667c5c047fcde0181bbd87992b14729cdc8d59ef9",
+              "block": 68439423,
+              "args": {
+                "category": 0,
+                "period": 9,
+                "mode": 2,
+                "limit": 295000000
+              },
+              "ms": 1783
+            }
+          }
+        }
+      ],
+      "checks": [
+        {
+          "scenario": null,
+          "label": "One more purchase on Base after the cap",
+          "ok": true,
+          "detail": "refused (CategoryFrozen)"
+        }
+      ],
+      "callbacks": 10,
+      "medianMs": 2561,
+      "p95Ms": 4118
+    },
+    {
+      "run": 4,
+      "kind": "scenarios",
+      "period": 10,
+      "startedAt": "2026-11-21T21:10:27.195Z",
+      "finishedAt": "2026-11-21T21:12:08.549Z",
+      "loops": [
+        {
+          "label": "Setup: groceries rule in force → mirrored",
+          "ok": true,
+          "origin": {
+            "hash": "0x6c3ebe5484db51259117e1b283fbc16433e091c039e621399f61bf3867ff5100",
+            "block": 61867808,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x3b9188befbeddf5c0cbeb8b11ba8ca2e8a8477b351473b36f86bca3341413410",
+            "block": 8922170,
+            "args": {
+              "category": 0,
+              "version": 6,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0xac4b75e00285d5c2dbbe24d373576f8df0b50f020960880439cd902f882ad9b8",
+              "block": 68443004,
+              "args": {
+                "category": 0,
+                "version": 6,
+                "monthlyCap": 1000000000
+              },
+              "ms": 4065
+            }
+          },
+          "scenario": "setup"
+        },
+        {
+          "label": "Setup: rent rule in force → mirrored",
+          "ok": true,
+          "origin": {
+            "hash": "0xa7441c2f24a90782bf58d910443bf15b071e55901ba4e2a07794a0c29535c91b",
+            "block": 61867843,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x765892956d23449dfead0da1a418392907e4f729a4055536263da8b4a4650579",
+            "block": 8922177,
+            "args": {
+              "category": 1,
+              "version": 6,
+              "cap": 2000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x78fc5b0068124074b0042e80d9ff8b71e20134de9922add6dd1036741d6adcc8",
+              "block": 68443011,
+              "args": {
+                "category": 1,
+                "version": 6,
+                "monthlyCap": 2000000000
+              },
+              "ms": 3399
+            }
+          },
+          "scenario": "setup"
+        },
+        {
+          "label": "Bob co-signs on Unichain → spent → counted in the household ledger",
+          "ok": true,
+          "origin": {
+            "hash": "0xbad09d1165ec4bec946ef9436931a9c2df938f3e42a34560fb96885e5d0b0a76",
+            "block": 68443018,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0x10a71fc4810aaa16994544bf350ac6109a9590d73c025c6959e23ec2fbf569ec",
+            "block": 8922185,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 1301,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 160000000,
+              "householdSpent": 160000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "cosign"
+        },
+        {
+          "label": "Pip buys on Base and says why → counted by Hob",
+          "ok": true,
+          "origin": {
+            "hash": "0x3944622844b6c4dacfc79eacf8532d270ee7d2cd37bd48784ddfa41600603a37",
+            "block": 61867908,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x5bb6a9b54ba2dc17a683a28710943f0fc184a885d3fc249c2b9834a97e9ebda1",
+            "block": 8922189,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 84532,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 12000000,
+              "householdSpent": 172000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "reason"
+        },
+        {
+          "label": "Adults raise the groceries cap to 1,200 on Base → applied on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0xc90de6291d8d728cd1017a96ab045fcd4321c53aad08377ee265ad0f13b62d27",
+            "block": 61867928,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x48f58958c789d0d4376e8145997639ec4460ea736d8534d6bffa4d4d5559c86a",
+            "block": 8922193,
+            "args": {
+              "category": 0,
+              "version": 7,
+              "cap": 1200000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x12002a47bdd7968b838589b2d265d11984a447012f0706f79fbcb27e1ad55d1b",
+              "block": 68443028,
+              "args": {
+                "category": 0,
+                "version": 7,
+                "monthlyCap": 1200000000
+              },
+              "ms": 3041
+            }
+          },
+          "scenario": "rulechange"
+        },
+        {
+          "label": "Adults set it back to 1,000 → applied on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0x7039a057f70d58db14b881b87d6f6dc6733dd2d59288e06be1b1b51056dc8b3c",
+            "block": 61867958,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x0c134cba11de8257295874da27eb7a1f4524bebaa0f03055491289f89e476a44",
+            "block": 8922199,
+            "args": {
+              "category": 0,
+              "version": 8,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0xe8b62ad4ce355d1ec86265d1e802fdc2eca03d8bd1efa7a9c8b939e5d84b2e81",
+              "block": 68443035,
+              "args": {
+                "category": 0,
+                "version": 8,
+                "monthlyCap": 1000000000
+              },
+              "ms": 3357
+            }
+          },
+          "scenario": "rulechange"
+        },
+        {
+          "label": "Adults pause rent on Base → paused on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0xca0d711f216a0388e93dd86db3438b2a2f94059563cfec1acd3310d886deb5b5",
+            "block": 61867990,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0xe440f5d4bc1834e644fd441a3eb813c643096316ad6b572dcc2106f38d4c2710",
+            "block": 8922205,
+            "args": {
+              "category": 1,
+              "version": 7,
+              "cap": 2000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0xf6f593992d6e5f757295e46acb4d23d3c1a347128882bc37bf88ae6c714020d8",
+              "block": 68443041,
+              "args": {
+                "category": 1,
+                "version": 7,
+                "monthlyCap": 2000000000
+              },
+              "ms": 3842
+            }
+          },
+          "scenario": "pause"
+        },
+        {
+          "label": "Adults reopen rent on Base → reopened on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0xd1de1022917971d5f2649e23556432404002d15029965545e047a0528f849902",
+            "block": 61868028,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0xd5b70c0b4bba344d067dbf77342f700bb3b6c37e9f15fac2a7ae32d93c4d447c",
+            "block": 8922212,
+            "args": {
+              "category": 1,
+              "version": 8,
+              "cap": 2000000000
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x1b468cdc8124a899f43f2c9e31f07c5054fa4d94b86b279ac73749b7c22c8183",
+              "block": 68443048,
+              "args": {
+                "category": 1,
+                "version": 8,
+                "monthlyCap": 2000000000
+              },
+              "ms": 3316
+            }
+          },
+          "scenario": "pause"
+        },
+        {
+          "label": "Adults vote Pip out on Base → removed on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0xd9d0fea097dea71b662bee9fcc1bc908dc52bc3638a0bbe485828745988c5e66",
+            "block": 61868059,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x083ed117f6c60e97ae5f02b0cb97593b543ddbcca0cb45667f0b5c8dec38cc7b",
+            "block": 8922218,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "role": 0,
+              "unfreeze": false
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0xf522f506446ce331ea67e7927eb9e43d846823e4bf25162292fc00048bd73f07",
+              "block": 68443055,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "role": 0,
+                "unfreeze": false,
+                "nonce": 12
+              },
+              "ms": 2568
+            }
+          },
+          "scenario": "membership"
+        },
+        {
+          "label": "Adults vote Pip back in → known again on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0x8040a632e1535f8ac0016f493853020ea397a4f08e6e1046f273b83d61e07929",
+            "block": 61868088,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0xe80a947e7beb516aae88064e825c617147675e5ce42398361e5aaf0ac3554f26",
+            "block": 8922223,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "role": 2,
+              "unfreeze": false
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0x1ce0bb772d9b127720e365687a3ee42b39a01edef32a6282bed1459d5d8ff67f",
+              "block": 68443060,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "role": 2,
+                "unfreeze": false,
+                "nonce": 13
+              },
+              "ms": 2777
+            }
+          },
+          "scenario": "membership"
+        },
+        {
+          "label": "Pip buy 1/6 on Base Sepolia (limit: 6 an hour, all chains)",
+          "ok": true,
+          "origin": {
+            "hash": "0xe95a227e444f46c95a5bdc87d80c00bd8ca0779204da96ac0f41578a0794e9de",
+            "block": 61868110,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x874b3eae34c43d3dd14ccad43e1368a44094c01d6936dc8808dddab1edea5b6a",
+            "block": 8922228,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 84532,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 10000000,
+              "householdSpent": 182000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "threshold"
+        },
+        {
+          "label": "Pip buy 2/6 on Unichain Sepolia (limit: 6 an hour, all chains)",
+          "ok": true,
+          "origin": {
+            "hash": "0x37bc6c47d77a43e5f086cb9c0be95df902b1a0e796936e918be2dbb5ceba823b",
+            "block": 68443067,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0x4c2019fe8557e89dc39aa0ac32bddf8621bcd528c60e8da1faaf88d323eaee7f",
+            "block": 8922232,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 1301,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 10000000,
+              "householdSpent": 192000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "threshold"
+        },
+        {
+          "label": "Pip buy 3/6 on Base Sepolia (limit: 6 an hour, all chains)",
+          "ok": true,
+          "origin": {
+            "hash": "0x7e8898b14be048dc4d53fb35d76f8a74fc37bda3420b84c9b63aca3abb8e8d0a",
+            "block": 61868151,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x06fb1d31d33c6d1640863bd1ba5fece1dcf57c95c9b3754285ccc64839e648d7",
+            "block": 8922235,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 84532,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 10000000,
+              "householdSpent": 202000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "threshold"
+        },
+        {
+          "label": "Pip buy 4/6 on Unichain Sepolia (limit: 6 an hour, all chains)",
+          "ok": true,
+          "origin": {
+            "hash": "0x0a6e15c27a9d72c256cddd14f08298ed016e8a14922edc8ddd28d0f5d01c9801",
+            "block": 68443075,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0x92ea5e9e89b3a731f8aa1bfc6ef3e938427aa56d0c2dfe7d13bbbb4e151f145d",
+            "block": 8922239,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 1301,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 10000000,
+              "householdSpent": 212000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "threshold"
+        },
+        {
+          "label": "Pip buy 5/6 on Base Sepolia (limit: 6 an hour, all chains)",
+          "ok": true,
+          "origin": {
+            "hash": "0xcf144102c95d8802f994085e66f204f861d0a6f34d2debe75eb77647e3ea4c17",
+            "block": 61868186,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x8f35bccad3da086bd0564b84eef9f53a10ace39219123b17ba0b28d40e15b80c",
+            "block": 8922242,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 84532,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 10000000,
+              "householdSpent": 222000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "threshold"
+        },
+        {
+          "label": "Pip buy 6/6 on Unichain Sepolia (limit: 6 an hour, all chains)",
+          "ok": true,
+          "origin": {
+            "hash": "0x18cc16a1861dccda17d3856279fa36eb0a251271284eba64804400975684bdd3",
+            "block": 68443082,
+            "chain": "uni"
+          },
+          "reactive": {
+            "hash": "0xe509f038d6993172fc26cc29cdea37b0b3b490ed715b3fee6f9651850c31ea22",
+            "block": 8922246,
+            "args": {
+              "period": 10,
+              "category": 0,
+              "chainId": 1301,
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amount": 10000000,
+              "householdSpent": 232000000,
+              "cap": 1000000000
+            }
+          },
+          "callbacks": {},
+          "scenario": "threshold"
+        },
+        {
+          "label": "Pip buy 7 on Base → over the limit → frozen on both chains",
+          "ok": true,
+          "origin": {
+            "hash": "0x6ea99b1850645ea696ab613491c98a5e3b07e52feef1a5620b3fd1f0449fbbb6",
+            "block": 61868226,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x60a3c880cb5296d3c8be06a0ee47f05dc9799ed2b22814cb577f770f8ae89e3c",
+            "block": 8922249,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "amountInWindow": 70000000,
+              "txInWindow": 7,
+              "frozenUntil": 1795381914
+            }
+          },
+          "callbacks": {
+            "base": {
+              "hash": "0xd212b14b6502ea5356050cbff1779ce2d95aa44d9753d61c0f845c5feff90aa6",
+              "block": 61868231,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "until": 1795381914
+              },
+              "ms": 1268
+            },
+            "uni": {
+              "hash": "0xda6480e73ff24508d04d282767b426dd54b6b9e60a60280b453bddc91f6bf252",
+              "block": 68443088,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "until": 1795381914
+              },
+              "ms": 4014
+            }
+          },
+          "scenario": "threshold"
+        },
+        {
+          "label": "Alice lifts the freeze on Base → lifted on Unichain",
+          "ok": true,
+          "origin": {
+            "hash": "0x88cb1d0661032f1cfd121f1d5150a08d3025b365087efd1466905c68aa7562fd",
+            "block": 61868257,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x3ed8b0a30497842c77a2000425c485918f5d41114855071b4433faeaa52d545a",
+            "block": 8922255,
+            "args": {
+              "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+              "role": 2,
+              "unfreeze": true
+            }
+          },
+          "callbacks": {
+            "uni": {
+              "hash": "0xc18d4bde81ad06d1b277889b49289a9798c3f8ac624bee7ef4017f9f7038a0cf",
+              "block": 68443094,
+              "args": {
+                "member": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180",
+                "role": 2,
+                "unfreeze": true,
+                "nonce": 14
+              },
+              "ms": 2505
+            }
+          },
+          "scenario": "threshold"
+        },
+        {
+          "label": "Alice pays the whole rent (2,000) on Base → rent FROZEN on both chains",
+          "ok": true,
+          "origin": {
+            "hash": "0xf9358ab2144774e484590f001d0d16ce94d77de9e01aa7bf40c2007765b0a0ec",
+            "block": 61868278,
+            "chain": "base"
+          },
+          "reactive": {
+            "hash": "0x376581cc3b4b35ae20ddf63f4e3d8a9ed8b7ef5a5df62001e9eed500f48acac9",
+            "block": 8922259,
+            "args": {
+              "period": 10,
+              "category": 1,
+              "mode": 2,
+              "householdSpent": 2000000000,
+              "cap": 2000000000
+            }
+          },
+          "callbacks": {
+            "base": {
+              "hash": "0x1fcb93658570f0aab5ee6f1d67d42942a4b36955a993cb2bd0e7c81f267fde5e",
+              "block": 61868284,
+              "args": {
+                "category": 1,
+                "period": 10,
+                "mode": 2,
+                "limit": 2000000000
+              },
+              "ms": 1171
+            },
+            "uni": {
+              "hash": "0xf589eccd7c1c2f81faf550f494af552d5eb5bbfc0158ffccd0f7fb3e10585f5e",
+              "block": 68443098,
+              "args": {
+                "category": 1,
+                "period": 10,
+                "mode": 2,
+                "limit": 0
+              },
+              "ms": 3427
+            }
+          },
+          "scenario": "wholecap"
+        }
+      ],
+      "checks": [
+        {
+          "scenario": "cosign",
+          "label": "Pip's 160 on Unichain is held for a co-sign",
+          "ok": true,
+          "detail": "request #1"
+        },
+        {
+          "scenario": "cosign",
+          "label": "Pip co-signs its own request",
+          "ok": true,
+          "detail": "refused (NotAdult|SelfApproval|OnlyAdult)"
+        },
+        {
+          "scenario": "reason",
+          "label": "Pip buys on Unichain without saying why",
+          "ok": true,
+          "detail": "refused (ReasonRequired)"
+        },
+        {
+          "scenario": "reason",
+          "label": "Pip's reason is on-chain in the same transaction as the spend",
+          "ok": true,
+          "detail": "\"Oat milk and eggs: the fridge is empty\""
+        },
+        {
+          "scenario": "rulechange",
+          "label": "Unichain now enforces a cap of 1,200",
+          "ok": true,
+          "detail": "read from the Unichain vault"
+        },
+        {
+          "scenario": "pause",
+          "label": "Bob pays rent on Unichain while it is paused",
+          "ok": true,
+          "detail": "refused (CategoryInactive)"
+        },
+        {
+          "scenario": "membership",
+          "label": "Pip buys on Unichain after being voted out",
+          "ok": true,
+          "detail": "refused (NotMember)"
+        },
+        {
+          "scenario": "threshold",
+          "label": "6 buys across chains: no freeze",
+          "ok": true,
+          "detail": "no VelocityBreach on Reactive"
+        },
+        {
+          "scenario": "threshold",
+          "label": "Frozen Pip buys on Unichain",
+          "ok": true,
+          "detail": "refused (MemberIsFrozen)"
+        },
+        {
+          "scenario": "wholecap",
+          "label": "Bob pays rent on Unichain after the cap",
+          "ok": true,
+          "detail": "refused (CategoryFrozen)"
+        },
+        {
+          "scenario": "wholecap",
+          "label": "Groceries stay open on Unichain",
+          "ok": true,
+          "detail": "groceries NORMAL"
+        }
+      ],
+      "callbacks": 13,
+      "medianMs": 3316,
+      "p95Ms": 4065
     }
   ],
   "rollovers": [
@@ -959,6 +1890,27 @@
       "blocks": {
         "base": 61700840,
         "uni": 68409608
+      }
+    },
+    {
+      "fromPeriod": 9,
+      "toPeriod": 10,
+      "before": {
+        "base": "FROZEN",
+        "uni": "FROZEN",
+        "spentBase": 705,
+        "spentUni": 295
+      },
+      "after": {
+        "base": "NORMAL",
+        "uni": "NORMAL",
+        "spentBase": 0,
+        "spentUni": 0
+      },
+      "observedAt": "2026-11-21T20:53:57.131Z",
+      "blocks": {
+        "base": 61862841,
+        "uni": 68442009
       }
     }
   ],
