@@ -985,7 +985,13 @@ async function send(who, c, functionName, args) {
   } catch (e) {
     // the state can change between the dry-run and the wallet's own gas estimate (Hob may freeze
     // someone in between); if the wallet gave no reason, ask the chain again for the error name
-    if (!DEMO_KEYS && !errName(e)) await c.p.simulateContract({ address: c.address, abi: c.abi, functionName, args, account: w.account.address });
+    // (public RPCs sit behind load balancers, so a node may lag a block: ask up to three times)
+    if (!DEMO_KEYS && !errName(e)) {
+      for (let i = 0; i < 3; i++) {
+        await c.p.simulateContract({ address: c.address, abi: c.abi, functionName, args, account: w.account.address });
+        await sleep(1500);
+      }
+    }
     throw e;
   }
   const r = await c.p.waitForTransactionReceipt({ hash });
