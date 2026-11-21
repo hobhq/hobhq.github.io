@@ -26,7 +26,7 @@ jobs:
       - name: Static site, testnet only
         run: |
           mkdir _site
-          cp web/index.html web/app.js web/style.css web/abi.json web/deployment.testnet.json _site/
+          cp web/index.html web/app.js web/icons.js web/fx.js web/style.css web/abi.json web/deployment.testnet.json _site/
           mkdir _site/vendor && cp web/vendor/viem.js _site/vendor/
           if [ -f web/evidence.testnet.json ]; then cp web/evidence.testnet.json _site/; fi
           touch _site/.nojekyll
