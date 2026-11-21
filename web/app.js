@@ -247,7 +247,13 @@ async function indexerLogs(c, fromBlock, toBlock) {
   const seen = new Set();
   for (let from = fromBlock, guard = 0; from <= toBlock && guard < 50; guard++) {
     const u = `${base}/api?module=logs&action=getLogs&address=${c.address}&fromBlock=${from}&toBlock=${toBlock}`;
-    const r = await fetch(u).then((x) => x.json());
+    let r = null;
+    for (let attempt = 0; attempt < 4 && !r; attempt++) {
+      const res = await fetch(u);
+      if (res.status === 429 || res.status >= 500) { await sleep(800 * (attempt + 1)); continue; } // rate limited: back off
+      r = await res.json();
+    }
+    if (!r) throw new Error("indexer busy");
     const page = Array.isArray(r.result) ? r.result : [];
     if (r.status !== "1" && !page.length && !/no (records|logs)/i.test(r.message ?? "")) throw new Error(`indexer: ${r.message}`);
     for (const l of page) {
@@ -268,6 +274,20 @@ async function rpcLogs(c, fromBlock, toBlock) {
   for (let from = fromBlock; from <= toBlock; from += CHUNK) ranges.push([from, from + CHUNK - 1n < toBlock ? from + CHUNK - 1n : toBlock]);
   return (await Promise.all(ranges.map(([f, t]) => c.p.getLogs({ address: c.address, fromBlock: f, toBlock: t })))).flat();
 }
+// Last resort for old history: the chain's official RPC keeps it, but serves at most 1,000 blocks a query.
+const ARCHIVE = LOCAL ? {} : { 1301: "https://sepolia.unichain.org" };
+async function archiveLogs(c, fromBlock, toBlock) {
+  if (!ARCHIVE[c.chainId]) throw new Error("no archive RPC");
+  c.archive ??= createPublicClient({ chain: chainOf(c), transport: http(ARCHIVE[c.chainId]) });
+  const ranges = [];
+  for (let f = fromBlock; f <= toBlock; f += 1000n) ranges.push([f, f + 999n < toBlock ? f + 999n : toBlock]);
+  const outLogs = [];
+  for (let i = 0; i < ranges.length; i += 8) {
+    const part = await Promise.all(ranges.slice(i, i + 8).map(([f, t]) => c.archive.getLogs({ address: c.address, fromBlock: f, toBlock: t })));
+    outLogs.push(...part.flat());
+  }
+  return outLogs;
+}
 async function fetchLogs(c, fromBlock, toBlock) {
   if (fromBlock > toBlock) return [];
   const split = toBlock > RECENT ? toBlock - RECENT : 0n;
@@ -275,7 +295,10 @@ async function fetchLogs(c, fromBlock, toBlock) {
   const recent = rpcLogs(c, split + 1n, toBlock);
   let old;
   try { old = await indexerLogs(c, fromBlock, split); }
-  catch { old = await rpcLogs(c, fromBlock, split); } // indexer down: the RPC may still have it
+  catch {
+    try { old = await rpcLogs(c, fromBlock, split); } // indexer down: the RPC may still have it
+    catch { old = await archiveLogs(c, fromBlock, split); } // pruned too: the chain's own RPC, small ranges
+  }
   return [...old, ...(await recent)];
 }
 
@@ -953,7 +976,18 @@ async function walletFor(who, c) {
 
 async function send(who, c, functionName, args) {
   const w = await walletFor(who, c);
-  const hash = await w.writeContract({ address: c.address, abi: c.abi, functionName, args, chain: chainOf(c) });
+  // Dry-run on the public RPC first: browser wallets often drop the revert data, and this way the
+  // refusal is explained by name (MemberIsFrozen, ReasonRequired, ...) before anything is signed.
+  if (!DEMO_KEYS) await c.p.simulateContract({ address: c.address, abi: c.abi, functionName, args, account: w.account.address });
+  let hash;
+  try {
+    hash = await w.writeContract({ address: c.address, abi: c.abi, functionName, args, chain: chainOf(c) });
+  } catch (e) {
+    // the state can change between the dry-run and the wallet's own gas estimate (Hob may freeze
+    // someone in between); if the wallet gave no reason, ask the chain again for the error name
+    if (!DEMO_KEYS && !errName(e)) await c.p.simulateContract({ address: c.address, abi: c.abi, functionName, args, account: w.account.address });
+    throw e;
+  }
   const r = await c.p.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`${functionName} reverted`);
   r.chain = c;
@@ -1130,12 +1164,13 @@ const STEPS = [
     ],
     disabled: (s) => (s.agent?.role !== 2 ? "Welcome Pip first (chapter 2)" : agentFrozenBoth(s) ? "Pip is already frozen. Lift it in chapter 5 first" : s.budget[G].base.mode > 0 ? "Groceries is past the line, so Pip needs a co-sign now" : null),
     async run(log) {
-      let i = 0;
+      let i = 0, landed = 0, limited = 0;
       const plan = [C.base, C.base, C.base, C.uni, C.uni, C.uni, C.uni];
       for (const c of plan) {
         i++;
         try {
           const r = await spendLogged("agent", c, G, U(15), (t, r) => log(`buy ${i}/7 · ${t}`, r), `Snack restock, order ${i}`);
+          landed++;
           if (emitted(r, c, "SpendRequested")) {
             log("Groceries just went TIGHT, so Pip now needs a co-sign for every buy. Stopping the burst");
             return;
@@ -1147,12 +1182,20 @@ const STEPS = [
             continue;
           }
           if (n === "RateLimited") {
+            limited++;
             log(`buy ${i}/7 on ${c.short} refused by the local rate limit`);
             continue;
           }
           throw e;
         }
         await sleep(LOCAL ? 150 : 500);
+      }
+      if (limited && !agentFrozenBoth(S)) {
+        // the vaults' own hourly limit stopped part of the burst before Hob's cross-chain pace was reached
+        const t = await waitFor(agentFrozenBoth, 20_000).catch(() => null);
+        if (t === null) throw new Error(`The vaults' own hourly limit refused ${limited} of Pip's buys (Pip already shopped this hour), so only ${landed} landed and Hob's pace limit wasn't reached. Try again in an hour`);
+        log(`Hob froze Pip on Base and Unichain (${t.toFixed(1)} s after the last buy)`);
+        return;
       }
       const t = await waitFor(agentFrozenBoth);
       log(`Hob froze Pip on Base and Unichain (${t.toFixed(1)} s after the last buy)`);
@@ -1332,7 +1375,10 @@ $("act-hint").textContent = DEMO_KEYS ? "Local dev keys · every click is a real
 for (const [k, label] of [["alice", "Alice (adult)"], ["bob", "Bob (adult)"], ["agent", "Pip (AI shopper)"]]) $("as").add(new Option(label, k));
 for (const c of VAULTS) $("on").add(new Option(c.short, c.key));
 
+let shownTab = null;
 function showTab(t) {
+  if (shownTab !== null && t !== shownTab) document.dispatchEvent(new CustomEvent("hob:tab", { detail: t }));
+  shownTab = t;
   for (const b of document.querySelectorAll(".tb-nav [data-tab], .rail-nav [data-tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
   for (const s of document.querySelectorAll(".tab")) s.hidden = !(s.id === `tab-${t}` || (t === "home" && s.id === "tab-home-top"));
   window.scrollTo({ top: 0 });
