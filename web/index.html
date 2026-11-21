@@ -3,15 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org https://base-sepolia.blockscout.com https://unichain-sepolia.blockscout.com; base-uri 'none'; form-action 'none'" />
   <link rel="modulepreload" href="vendor/viem.js" />
   <link rel="modulepreload" href="app.js" />
+  <link rel="modulepreload" href="icons.js" />
   <link rel="preload" href="deployment.testnet.json" as="fetch" crossorigin />
   <meta name="referrer" content="no-referrer" />
   <title>Hob</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e63946'/%3E%3Cpath d='M32 12 52 29v20a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V29Z' fill='%23ffd9d6'/%3E%3Cellipse cx='26' cy='38' rx='3' ry='5' fill='%23111317'/%3E%3Cellipse cx='38' cy='38' rx='3' ry='5' fill='%23111317'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23050507'/%3E%3Cpath d='M32 6 58 28v26l-6 6H12l-6-6V28Z' fill='none' stroke='%23ff1e42' stroke-width='4'/%3E%3Cpath d='M18 36h28v6H18Z' fill='%23ff1e42'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -21,11 +22,14 @@
     <defs>
       <linearGradient id="hob-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="g1" /><stop offset="1" class="g2" /></linearGradient>
       <symbol id="hob" viewBox="0 0 120 120">
-        <rect class="chimney" x="80" y="14" width="12" height="24" rx="3" />
-        <path class="roof" d="M60 8 114 52H6Z" />
-        <path class="body" d="M18 48h84v52a10 10 0 0 1-10 10H28a10 10 0 0 1-10-10Z" fill="url(#hob-body)" />
-        <g class="eyes"><ellipse cx="45" cy="74" rx="7" ry="10" /><ellipse cx="75" cy="74" rx="7" ry="10" /></g>
-        <path class="mouth" d="M50 95q10 7 20 0" />
+        <path class="chimney" d="M86 30V10" />
+        <circle class="beacon" cx="86" cy="8" r="3.2" />
+        <path class="body" d="M60 10 110 50v48l-12 12H22L10 98V50Z" fill="url(#hob-body)" />
+        <path class="roof" d="M60 22 98 53v40l-7 7H29l-7-7V53Z" />
+        <path class="visor" d="M28 64h64v18H28Z" />
+        <g class="eyes"><path d="M37 70h16v6H37Z" /><path d="M67 70h16v6H67Z" /></g>
+        <path class="visor-scan" d="M30 73h8" />
+        <path class="mouth" d="M48 92h24" />
       </symbol>
     </defs>
   </svg>
@@ -35,7 +39,7 @@
     <div class="tb-left">
       <a class="brand" href="#" data-tab="home" aria-label="Hob, dashboard">
         <span class="brand-mark"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg></span>
-        <span class="brand-name">HOB</span>
+        <span class="brand-txt"><span class="brand-name">HOB</span><span class="brand-sub">Autonomous guardian</span></span>
       </a>
       <span class="net-pill"><span id="heartbeat" class="dot"></span><span id="net-label">…</span></span>
     </div>
@@ -45,23 +49,29 @@
       <button role="tab" data-tab="story" aria-selected="false">The Story</button>
       <button role="tab" data-tab="hood" aria-selected="false">For Judges</button>
     </nav>
+    <div class="tb-ticker" aria-hidden="true"><span class="dot on"></span><b>Hob is on duty</b><span>Reading Base, Unichain and Reactive Lasna</span></div>
     <div class="tb-right">
-      <button class="btn primary" data-tab="story"><span class="ms">play_arrow</span>Run the story</button>
+      <button class="btn ghost-hud" data-tab="hood"><i data-i="verified"></i>Verify on-chain</button>
+      <button class="btn primary" data-tab="story"><i data-i="play"></i>Run the story</button>
     </div>
   </header>
 
   <!-- ================================================================ rail -->
   <aside class="rail">
     <div>
-      <p class="rail-label">Telemetry rail</p>
+      <p class="rail-label"><span>Telemetry rail</span><span class="rl-on">Active // 100%</span></p>
+      <span class="rail-meter" aria-hidden="true"><i></i></span>
       <nav class="rail-nav">
-        <button data-tab="home" aria-selected="true"><span class="ms">grid_view</span>Dashboard</button>
-        <button data-tab="dash" aria-selected="false"><span class="ms">chalet</span>The House</button>
-        <button data-tab="story" aria-selected="false"><span class="ms">auto_stories</span>The Story</button>
-        <button data-tab="hood" aria-selected="false"><span class="ms">gavel</span>For Judges</button>
+        <button data-tab="home" aria-selected="true"><i data-i="grid"></i>Dashboard</button>
+        <button data-tab="dash" aria-selected="false"><i data-i="house"></i>The House</button>
+        <button data-tab="story" aria-selected="false"><i data-i="story"></i>The Story</button>
+        <button data-tab="hood" aria-selected="false"><i data-i="judge"></i>For Judges</button>
       </nav>
     </div>
-    <div class="rail-chains" id="rail-chains"></div>
+    <div class="rail-foot">
+      <div class="rail-sys" aria-hidden="true"><span>Sys_telemetry_log</span><span>Chain: Lasna_reactive</span><span>Reason_core: online</span><span>Enforcer: active</span></div>
+      <div class="rail-chains" id="rail-chains"></div>
+    </div>
   </aside>
 
   <!-- ================================================================ main -->
@@ -73,30 +83,32 @@
     <!-- Dashboard header + hero (dashboard tab only) -->
     <div class="tab" id="tab-home-top">
       <section class="page-head">
+        <div class="sec-bar" aria-hidden="true"><span class="sb-l"><i class="sq"></i>// SEC_00 // Runtime surveillance active</span><span class="sb-r">Origin: <b>Base Sepolia ⟷ Unichain</b> <em>|</em> Reactor: <b>Lasna</b></span></div>
         <div class="ph-text">
           <div class="chips" id="chips"></div>
-          <h1>AI reasons. Code enforces. Hob reacts.</h1>
+          <span class="kicker"><i data-i="verified"></i>Autonomous household protocol</span>
+          <h1 class="glitch" data-text="AI reasons. Code enforces. Hob reacts."><span>AI reasons.</span> <span>Code enforces.</span> <span class="hl">Hob reacts.</span></h1>
           <p class="lede">Who enforces an AI agent's rules when nobody is watching? Here, the household does. Pip, an AI shopper, spends from a shared vault on Base and Unichain and must say why. Alice and Bob agree on the rules together. Hob, a guardian on Reactive Network, watches both chains and enforces those rules by itself, even while Pip and the adults are offline. No bot, no cron, no admin.</p>
         </div>
         <div class="ph-actions">
-          <button class="btn" data-tab="hood"><span class="ms accent">shield_with_heart</span>Verify on-chain</button>
-          <button class="btn primary" data-tab="story"><span class="ms">bolt</span>Run the story</button>
+          <button class="btn primary" data-tab="story"><i data-i="bolt"></i>Run the story</button>
+          <button class="btn ghost-hud" data-tab="hood"><i data-i="verified"></i>Verify on-chain</button>
         </div>
       </section>
 
       <section class="hero glass-card">
         <div class="hero-txt">
-          <span class="eyebrow">Hob is on duty</span>
+          <span class="eyebrow">// Cognitive radar · Hob is on duty</span>
           <p class="hero-say loading" id="hero-say" role="status">Reading Base, Unichain and Reactive Lasna…</p>
           <div class="hero-chains" id="hero-chains"></div>
         </div>
-        <div class="hero-fig" id="hero-fig"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg></div>
+        <div class="hero-fig" id="hero-fig"><span class="radar" aria-hidden="true"><i></i><i></i><i></i><b></b></span><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg></div>
       </section>
 
       <section class="duty" aria-label="Who does what">
-        <div class="duty-c"><span class="ms accent">smart_toy</span><div><h3>Pip reasons</h3><p>The AI shopper decides what to buy and writes <b>why</b>, on-chain, in the same transaction as the money. No reason, no purchase.</p></div></div>
-        <div class="duty-c"><span class="ms accent">gavel</span><div><h3>Code enforces</h3><p>Each vault checks the rules the adults ratified: max per purchase, co-sign above a line, a pace per hour. Pip can't approve, co-sign or unfreeze.</p></div></div>
-        <div class="duty-c"><span class="ms accent">bolt</span><div><h3>Hob reacts</h3><p>On Reactive, Hob remembers the whole house across chains and reacts: tighten, freeze, copy a decision, start a new <span class="pw">month</span>. Nobody has to be awake.</p></div></div>
+        <div class="duty-c"><span class="duty-k">// Stage_01 // Agent</span><i data-i="pip" class="duty-i"></i><div><h3>Pip reasons</h3><p>The AI shopper decides what to buy and writes <b>why</b>, on-chain, in the same transaction as the money. No reason, no purchase.</p><span class="duty-f"><span>Param: SpendReason</span><b>Payload required</b></span></div></div>
+        <div class="duty-c"><span class="duty-k">// Stage_02 // Local vault</span><i data-i="enforce" class="duty-i"></i><div><h3>Code enforces</h3><p>Each vault checks the rules the adults ratified: max per purchase, co-sign above a line, a pace per hour. Pip can't approve, co-sign or unfreeze.</p><span class="duty-f"><span>Checked: every spend</span><b>Max · co-sign · pace</b></span></div></div>
+        <div class="duty-c"><span class="duty-k">// Stage_03 // Reaction</span><i data-i="react" class="duty-i"></i><div><h3>Hob reacts</h3><p>On Reactive, Hob remembers the whole house across chains and reacts: tighten, freeze, copy a decision, start a new <span class="pw">month</span>. Nobody has to be awake.</p><span class="duty-f"><span>Orchestrator: Lasna</span><b>Cross-chain</b></span></div></div>
       </section>
     </div>
 
@@ -142,7 +154,7 @@
       <section class="glass-card section">
         <div class="sec-head">
           <div><span class="eyebrow">Reactive orchestration log</span><h2>What Hob did</h2></div>
-          <span class="meta"><span class="ms sm">sync</span>read live from Base, Unichain and Lasna</span>
+          <span class="meta"><i data-i="sync"></i>read live from Base, Unichain and Lasna</span>
         </div>
         <div class="hob-steps" id="hob-steps"></div>
       </section>
@@ -150,7 +162,7 @@
       <section class="glass-card section" id="console-card">
         <div class="sec-head">
           <div><span class="eyebrow">Judges &amp; operator testbed</span><h2>Interactive console</h2></div>
-          <span class="badge-soft"><span class="ms sm">science</span><span id="act-hint"></span></span>
+          <span class="badge-soft"><i data-i="lab"></i><span id="act-hint"></span></span>
         </div>
         <div class="form-grid">
           <label>Resident / operator <select id="as"></select></label>
@@ -160,9 +172,9 @@
           <label class="wide">Reason (Pip must give one) <input id="why" type="text" maxlength="160" value="Weekly groceries" /></label>
         </div>
         <div class="form-actions">
-          <button id="btn-spend" class="btn primary"><span class="ms">send</span>Dispatch spend</button>
-          <button id="btn-spike" class="btn danger"><span class="ms">bolt</span>Trigger Pip's 7-buy spike</button>
-          <button id="btn-unfreeze" class="btn"><span class="ms">lock_open</span>Unfreeze Pip</button>
+          <button id="btn-spend" class="btn primary"><i data-i="send"></i>Dispatch spend</button>
+          <button id="btn-spike" class="btn danger"><i data-i="bolt"></i>Trigger Pip's 7-buy spike</button>
+          <button id="btn-unfreeze" class="btn"><i data-i="unlock"></i>Unfreeze Pip</button>
           <span class="ready"><span class="dot on"></span><span id="toast" class="toast" role="status">Ready</span></span>
         </div>
         <details class="propose">
@@ -234,7 +246,7 @@
           <div class="sec-head"><div><span class="eyebrow">The case for Reactive</span><h2>Why this needs Reactive</h2></div></div>
           <div class="compare">
             <div class="col without">
-              <h3><span class="ms">block</span>Without Hob</h3>
+              <h3><i data-i="block"></i>Without Hob</h3>
               <ul>
                 <li>Each vault sees only its own chain.</li>
                 <li>Pip's 3 buys on Base and 4 on Unichain each look fine. Nobody notices 7.</li>
@@ -245,7 +257,7 @@
               </ul>
             </div>
             <div class="col with">
-              <h3><span class="ms">verified</span>With Hob on Reactive Network</h3>
+              <h3><i data-i="verified"></i>With Hob on Reactive Network</h3>
               <ul>
                 <li>One household ledger, summed across chains.</li>
                 <li>Pip's pace counted across chains, then frozen on every chain.</li>
@@ -304,9 +316,10 @@ node ops/prove.mjs testnet   # → docs/EVIDENCE.md</pre>
       </div>
     </div>
 
-    <footer><span id="addrs"></span></footer>
+    <footer class="statusbar"><span id="addrs"></span><span class="sb-ok"><i class="sq"></i>Reactive Network · proven on testnet</span></footer>
   </main>
 
+  <script type="module" src="fx.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ import {
   parseUnits,
   privateKeyToAccount,
 } from "./vendor/viem.js"; // viem 2.21.55, self-hosted (node ops/build-vendor.mjs)
+import { icon } from "./icons.js";
 
 // ================================================================== config
 // local dev server -> the anvil chains; anywhere else (GitHub Pages) -> the live testnet deployment
@@ -236,13 +237,53 @@ async function tsOf(c, blockNumber) {
   return blockTime.get(k);
 }
 
+// Public RPCs prune old logs (PublicNode keeps hours on Unichain Sepolia), so history older than the
+// last few hundred blocks comes from the chain's Blockscout indexer; recent blocks always come from the RPC.
+const INDEXER = LOCAL ? {} : { 84532: "https://base-sepolia.blockscout.com", 1301: "https://unichain-sepolia.blockscout.com" };
+const RECENT = 300n;
+async function indexerLogs(c, fromBlock, toBlock) {
+  const base = INDEXER[c.chainId];
+  const out = [];
+  const seen = new Set();
+  for (let from = fromBlock, guard = 0; from <= toBlock && guard < 50; guard++) {
+    const u = `${base}/api?module=logs&action=getLogs&address=${c.address}&fromBlock=${from}&toBlock=${toBlock}`;
+    const r = await fetch(u).then((x) => x.json());
+    const page = Array.isArray(r.result) ? r.result : [];
+    if (r.status !== "1" && !page.length && !/no (records|logs)/i.test(r.message ?? "")) throw new Error(`indexer: ${r.message}`);
+    for (const l of page) {
+      const k = `${l.transactionHash}:${l.logIndex}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const blockNumber = BigInt(l.blockNumber);
+      if (l.timeStamp) blockTime.set(`${c.key}:${blockNumber}`, Number(BigInt(l.timeStamp)));
+      out.push({ address: l.address, blockNumber, data: l.data, topics: l.topics.filter(Boolean), transactionHash: l.transactionHash, logIndex: Number(BigInt(l.logIndex || "0x0")) });
+    }
+    if (page.length < 1000) break; // last page
+    from = BigInt(page[page.length - 1].blockNumber); // overlap one block; duplicates are skipped
+  }
+  return out;
+}
+async function rpcLogs(c, fromBlock, toBlock) {
+  const ranges = [];
+  for (let from = fromBlock; from <= toBlock; from += CHUNK) ranges.push([from, from + CHUNK - 1n < toBlock ? from + CHUNK - 1n : toBlock]);
+  return (await Promise.all(ranges.map(([f, t]) => c.p.getLogs({ address: c.address, fromBlock: f, toBlock: t })))).flat();
+}
+async function fetchLogs(c, fromBlock, toBlock) {
+  if (fromBlock > toBlock) return [];
+  const split = toBlock > RECENT ? toBlock - RECENT : 0n;
+  if (!INDEXER[c.chainId] || fromBlock > split) return rpcLogs(c, fromBlock, toBlock);
+  const recent = rpcLogs(c, split + 1n, toBlock);
+  let old;
+  try { old = await indexerLogs(c, fromBlock, split); }
+  catch { old = await rpcLogs(c, fromBlock, split); } // indexer down: the RPC may still have it
+  return [...old, ...(await recent)];
+}
+
 async function pollChain(c) {
   const head = await c.p.getBlockNumber();
   heads[c.key] = head;
   if (cursors[c.key] === undefined) cursors[c.key] = await startBlock(c);
-  const ranges = [];
-  for (let from = cursors[c.key]; from <= head; from += CHUNK) ranges.push([from, from + CHUNK - 1n < head ? from + CHUNK - 1n : head]);
-  const logs = (await Promise.all(ranges.map(([fromBlock, toBlock]) => c.p.getLogs({ address: c.address, fromBlock, toBlock })))).flat();
+  const logs = await fetchLogs(c, cursors[c.key], head);
   const decoded = [];
   for (const lg of logs) {
     try {
@@ -400,10 +441,10 @@ function fly(fromEl, toEl, label, tone) {
 }
 
 // ================================================================== render: dashboard (Obsidian Crimson)
-const PIP_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="9" width="20" height="16" rx="5" fill="#ffb3b1"/><circle cx="12.5" cy="17" r="2.4" fill="#111317"/><circle cx="19.5" cy="17" r="2.4" fill="#111317"/><rect x="14.5" y="3.5" width="3" height="6" rx="1.5" fill="#ffb3b1"/><circle cx="16" cy="3.5" r="2.2" fill="#ff535b"/><rect x="12" y="21.5" width="8" height="1.8" rx=".9" fill="#111317"/></svg>`;
+const PIP_SVG = `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" aria-hidden="true"><path d="M16 3v4"/><path class="a-beacon" d="M14.5 2.5h3"/><path d="M7 9h18l3 3v10l-3 3H7l-3-3V12Z"/><path d="M8.5 14.5h15v5h-15Z" opacity=".5"/><path class="a-scan" d="M11 17h3.5M17.5 17H21"/></svg>`;
 const HOB_MINI = `<svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg>`;
 const money = (v) => `$${Number(formatUnits(v ?? 0n, 6)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const ms = (name, cls = "") => `<span class="ms ${cls}">${name}</span>`;
+const ms = (name, cls = "") => icon(name, cls);
 const chainLabel = (c) => (LOCAL ? `${c.short} (local)` : `${c.short} Sepolia`);
 const hoursLeft = (until) => {
   const m = Math.max(0, Number(until - S.now) / 60);
@@ -535,7 +576,7 @@ function renderLedger() {
   const pct = (b, v) => (b.cap > 0n ? Math.min(100, (Number(v) / Number(b.cap)) * 100) : 0);
   const left = g.cap > g.spent ? g.cap - g.spent : 0n;
   html("ledger-legend",
-    `<span><i style="background:var(--primary)"></i>Base ${money(g.byBase)}</span><span><i style="background:var(--blush)"></i>Unichain ${money(g.byUni)}</span><span><i style="background:#333539"></i>Headroom ${money(left)}</span>`);
+    `<span><i style="background:var(--primary)"></i>Base ${money(g.byBase)}</span><span><i style="background:var(--blush)"></i>Unichain ${money(g.byUni)}</span><span><i style="background:#2a1018"></i>Headroom ${money(left)}</span>`);
   if (g.cap === 0n) {
     html("ledger", `<p class="empty">No house rule yet. Alice and Bob agree on one in chapter 1 of the story.</p>`);
     return;
@@ -581,15 +622,15 @@ function renderChart() {
     return { left: (x(e.ts) / W) * 100, top: (y(v) / H) * 100, label, red: e.name === "VelocityBreach" || Number(e.a.mode) === 2 };
   });
   html("chart", `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="House groceries spend over time">
-      <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff535b" stop-opacity=".35"/><stop offset="1" stop-color="#ff535b" stop-opacity="0"/></linearGradient></defs>
-      <line x1="${P}" x2="${W - P}" y1="${y(cap)}" y2="${y(cap)}" stroke="#ff535b" stroke-opacity=".5" stroke-dasharray="6 6" vector-effect="non-scaling-stroke"/>
-      <line x1="${P}" x2="${W - P}" y1="${y(line)}" y2="${y(line)}" stroke="#ffb547" stroke-opacity=".6" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>
+      <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff1e42" stop-opacity=".35"/><stop offset="1" stop-color="#ff1e42" stop-opacity="0"/></linearGradient></defs>
+      <line x1="${P}" x2="${W - P}" y1="${y(cap)}" y2="${y(cap)}" stroke="#ff1e42" stroke-opacity=".5" stroke-dasharray="6 6" vector-effect="non-scaling-stroke"/>
+      <line x1="${P}" x2="${W - P}" y1="${y(line)}" y2="${y(line)}" stroke="#ffb020" stroke-opacity=".6" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>
       <path d="${area}" fill="url(#cg)"/>
-      <path d="${d}" fill="none" stroke="#ff535b" stroke-width="2.5" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 6px rgba(255,83,91,.6))"/>
+      <path d="${d}" fill="none" stroke="#ff1e42" stroke-width="2.5" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 6px rgba(255,30,66,.6))"/>
     </svg>
-    <span class="cl" style="position:absolute;right:0;top:${(y(cap) / H) * 100}%;transform:translateY(-120%);font-size:10.5px;color:#ff8a80">cap ${usd(g.cap)}</span>
-    <span class="cl" style="position:absolute;right:0;top:${(y(line) / H) * 100}%;transform:translateY(-120%);font-size:10.5px;color:#ffb547">tighten ${usd(g.threshold)}</span>
-    ${mk.map((m) => `<span style="position:absolute;left:${m.left}%;top:${m.top}%;transform:translate(-50%,-140%);padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:600;white-space:nowrap;background:${m.red ? "#e63946" : "#ffb547"};color:${m.red ? "#fff" : "#2a1800"};box-shadow:0 0 12px ${m.red ? "rgba(255,83,91,.6)" : "rgba(255,181,71,.5)"}">${m.label}</span>`).join("")}`);
+    <span class="cl" style="position:absolute;right:0;top:${(y(cap) / H) * 100}%;transform:translateY(-120%);font-size:10.5px;color:#ff8f70">cap ${usd(g.cap)}</span>
+    <span class="cl" style="position:absolute;right:0;top:${(y(line) / H) * 100}%;transform:translateY(-120%);font-size:10.5px;color:#ffb020">tighten ${usd(g.threshold)}</span>
+    ${mk.map((m) => `<span style="position:absolute;left:${m.left}%;top:${m.top}%;transform:translate(-50%,-140%);padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:600;white-space:nowrap;background:${m.red ? "#ff1e42" : "#ffb020"};color:${m.red ? "#fff" : "#1d1200"};box-shadow:0 0 12px ${m.red ? "rgba(255,30,66,.6)" : "rgba(255,176,32,.5)"}">${m.label}</span>`).join("")}`);
   html("chart-note", marks.length ? `${ms("warning", "sm")} ${marks.length} intervention${marks.length > 1 ? "s" : ""} by Hob this ${PW}` : `no interventions this ${PW}`);
 }
 
@@ -721,7 +762,7 @@ function renderRules() {
 }
 
 function renderBudget() {
-  $("period-label").textContent = `period #${S.period} · ${Math.round(D.period / 86400)}-day periods · resets by itself`;
+  $("period-label").textContent = `period #${S.period} · ${D.period >= 86400 ? `${Math.round(D.period / 86400)}-day` : `${Math.max(1, Math.round(D.period / 3600))}-hour`} periods · resets by itself`;
   const markup = S.budget
     .filter((b) => b.cap > 0n)
     .map((b) => {
