@@ -1,6 +1,6 @@
 {
   "network": "testnet",
-  "deployedAt": "2026-11-19T19:32:22.956Z",
+  "deployedAt": "2026-11-21T10:54:44.569Z",
   "chains": {
     "base": {
       "name": "Base Sepolia",
@@ -8,10 +8,10 @@
       "rpc": "https://base-sepolia-rpc.publicnode.com",
       "explorer": "https://base-sepolia.blockscout.com",
       "proxy": "0x476F44b11F5C942c58f4c8E3d0300E5710743585",
-      "vault": "0x98ea379aadfa9bc37ac69d2cf09f9ef9607c6460",
-      "token": "0x29727aa66ba61a81c64d7ef605a4a3778b667826",
-      "deployTx": "0xfa29046e3f3e206902d5bc8c6aa349990f0937255163f1e8771912faa0b90b78",
-      "deployBlock": 60974443,
+      "vault": "0xe76946846097234d2dfdf860eb17814e475b9aff",
+      "token": "0x06442c8fedde0559f44c13625ab158f3d2e25379",
+      "deployTx": "0x5152785fd44f5ff75e9713a15c04cd61641f9c82a973bc9b2ca6a957f1f41a81",
+      "deployBlock": 61683121,
       "home": true
     },
     "uni": {
@@ -20,10 +20,10 @@
       "rpc": "https://unichain-sepolia-rpc.publicnode.com",
       "explorer": "https://sepolia.uniscan.xyz",
       "proxy": "0x775c9B990ADe401060B78D0e98684eEf8d2466C1",
-      "vault": "0xb0d89fbf4ac79999d846f02762b60d9c991c52e2",
-      "token": "0x5d2551445dab6866c7c8883349ec5aa00757bfc6",
-      "deployTx": "0x5038c43d0273a593d6253ae13c39cad1e2c9fc4ca92a2a833f93a552d5f404ca",
-      "deployBlock": 68264336,
+      "vault": "0x4f13db218132d32839e25613d00db96e3dc2df3e",
+      "token": "0x92bb4c077ab056d0874c3bccbb4d8b247980d4e2",
+      "deployTx": "0xb6c7127686fe288316b3f14e6cc202d19ab28da5ab68c17853b3b4011b2b817c",
+      "deployBlock": 68406072,
       "home": false
     },
     "reactive": {
@@ -31,9 +31,9 @@
       "chainId": 5318007,
       "rpc": "https://lasna-rpc.rnk.dev/",
       "explorer": "https://lasna.reactscan.net",
-      "contract": "0x5d2551445dab6866c7c8883349ec5aa00757bfc6",
-      "deployTx": "0x53a55d9d143b1d8a3079e8baae846aede17f89b1e3875cd345e7b49ff5adb361",
-      "deployBlock": 8756157
+      "contract": "0x4f13db218132d32839e25613d00db96e3dc2df3e",
+      "deployTx": "0xa9a526fd80438be67c9d59af68993a5f99110b2ab528b86f7cb6437877b3e375",
+      "deployBlock": 8887387
     }
   },
   "members": {
@@ -41,7 +41,7 @@
     "bob": "0xE1D24e45d6cD0Ed81A415363fa9f3dA2883A6A2A",
     "agent": "0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180"
   },
-  "epoch": 1795116694,
+  "epoch": 1795258431,
   "period": 3600,
-  "resyncTx": "0x452277236e69a058f0fce552d362f23a7fb964514242b413570d019e073301b6"
+  "resyncTx": "0xd2fd95805ea87d7f8900ab42b014e205062cf29b7ab9323e75ddec82ec285edb"
 }

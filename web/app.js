@@ -172,8 +172,8 @@ async function load() {
 
 // ================================================================== events → feed → loops
 const DESCRIBE = {
-  Spent: (a) => `${nameOf(a.member)} spent ${usd(a.amount)} on ${CATS[a.category]?.name ?? a.category}`,
-  SpendRequested: (a) => `${nameOf(a.member)} asked to spend ${usd(a.amount)}: needs a second adult`,
+  Spent: (a, e) => `${nameOf(a.member)} spent ${usd(a.amount)} on ${CATS[a.category]?.name ?? a.category}${quote(reasonOf(e))}`,
+  SpendRequested: (a, e) => `${nameOf(a.member)} asked to spend ${usd(a.amount)}: needs a second adult${quote(reasonOf(e))}`,
   SpendApproved: (a) => `${nameOf(a.approver)} co-signed request #${a.id}`,
   ProposalCreated: (a) => `${nameOf(a.proposer)} proposed ${Number(a.kind) === 0 ? "a rule" : "a member change"} (#${a.id})`,
   ProposalApproved: (a) => `${nameOf(a.adult)} approved proposal #${a.id} (${a.approvals})`,
@@ -206,6 +206,13 @@ const PULSE_LABEL = {
 const RANK = { origin: 0, reaction: 1, callback: 2 };
 
 const EV = []; // every decoded event, ascending
+// Pip's own words (SpendReason): by transaction, and by co-sign request so an approval finds them too
+const REASON_TX = new Map(); // tx hash → reason
+const REQ_REASON = new Map(); // "base:3" → reason
+const APPROVE_TX = new Map(); // approval tx hash → "base:3"
+const reasonOf = (e) => (e?.lg ? REASON_TX.get(e.lg.transactionHash) ?? REQ_REASON.get(APPROVE_TX.get(e.lg.transactionHash)) : undefined);
+const quote = (r) => (r ? ` <q class="why">${esc(r)}</q>` : "");
+const describe = (e) => DESCRIBE[e.name](e.a, e);
 const cursors = {};
 const heads = {};
 const blockTime = new Map();
@@ -240,6 +247,10 @@ async function pollChain(c) {
   for (const lg of logs) {
     try {
       const ev = decodeEventLog({ abi: c.abi, data: lg.data, topics: lg.topics });
+      if (ev.eventName === "SpendReason") {
+        REASON_TX.set(lg.transactionHash, ev.args.reason);
+        if (ev.args.requestId !== 2n ** 256n - 1n) REQ_REASON.set(`${c.key}:${ev.args.requestId}`, ev.args.reason);
+      } else if (ev.eventName === "SpendApproved") APPROVE_TX.set(lg.transactionHash, `${c.key}:${ev.args.id}`);
       if (DESCRIBE[ev.eventName]) decoded.push({ lg, ev });
     } catch {}
   }
@@ -286,7 +297,7 @@ function buildLoops() {
       const a = r.a;
       if (r.name === "LedgerUpdated") {
         const oc = byChainId[String(a.chainId)];
-        loop.origin ??= take((e) => e.name === "Spent" && e.c === oc && e.a.member.toLowerCase() === a.member.toLowerCase() && e.a.amount === a.amount, { before: g.ts + 2 });
+        loop.origin ??= take((e) => e.name === "Spent" && e.c === oc && e.a.member.toLowerCase() === a.member.toLowerCase() && e.a.amount === a.amount, { before: g.ts + 2, after: g.ts - 3600 }); // FIFO: same-size buys stay in order
         loop.ledger = r;
       } else if (r.name === "RulesMirrored") {
         loop.origin ??= take((e) => e.name === "RulesRatified" && e.a.category === a.category && e.a.version === a.version, { before: g.ts + 2 });
@@ -328,12 +339,12 @@ const latText = (s) => (s <= 0 ? "Under a second" : `About ${s} s`);
 function loopCard(l) {
   const hop = (cls, label, body, c, hash) => `<div class="hop ${cls}"><span class="hop-k">${label}</span><span class="hop-b">${body}</span>${hash ? txLink(c, hash) : ""}</div>`;
   const o = l.origin
-    ? hop(`origin ${l.origin.c.key}`, `① ${l.origin.c.short}`, DESCRIBE[l.origin.name](l.origin.a), l.origin.c, l.origin.lg.transactionHash)
+    ? hop(`origin ${l.origin.c.key}`, `① ${l.origin.c.short}`, describe(l.origin), l.origin.c, l.origin.lg.transactionHash)
     : hop("origin", "① origin", "<span class=muted>outside the window</span>");
-  const rxBody = [l.ledger, ...l.rx.filter((r) => r !== l.ledger)].filter(Boolean).map((r) => DESCRIBE[r.name](r.a)).join("<br>");
+  const rxBody = [l.ledger, ...l.rx.filter((r) => r !== l.ledger)].filter(Boolean).map((r) => describe(r)).join("<br>");
   const r = hop("reaction reactive", "② Hob · Reactive", rxBody, C.reactive, l.hash);
   const cb = l.callbacks.length
-    ? l.callbacks.map((e) => hop(`callback ${e.c.key}`, `③ ${e.c.short}`, DESCRIBE[e.name](e.a), e.c, e.lg.transactionHash)).join("")
+    ? l.callbacks.map((e) => hop(`callback ${e.c.key}`, `③ ${e.c.short}`, describe(e), e.c, e.lg.transactionHash)).join("")
     : hop("callback none", "③", "<span class=muted>no callback needed: nothing changed on the chains</span>");
   const lat = l.latency !== null && l.callbacks.length ? `<span class="lat">${latText(l.latency)}</span>` : "";
   return `<div class="loop">${o}<span class="arrow" aria-hidden="true">→</span>${r}<span class="arrow" aria-hidden="true">→</span><div class="cbs">${cb}</div>${lat}</div>`;
@@ -594,6 +605,7 @@ function renderRoster() {
     const rows = isPip
       ? `<div><span>House pace limit</span><b>${pace.maxTx} buys / ${Math.round(pace.window / 3600)} h, all chains</b></div>
          <div><span>Spent this ${PW}</span><b>${money(spent)}</b></div>
+         <div><span>Last said</span><b>${last && reasonOf(last) ? `“${esc(reasonOf(last))}”` : "nothing yet"}</b></div>
          <div><span>Can approve or co-sign</span><b>never</b></div>
          <div><span>If the pace breaks</span><b>frozen ${Math.round(pace.freezeFor / 3600)} h, every chain</b></div>`
       : `<div><span>Vote</span><b>1 of ${S.quorum} needed for a rule</b></div>
@@ -622,13 +634,39 @@ function stepCard(l, i) {
   else if (h?.name === "CategoryEscalated") [icon, title, text] = ["compress", "Tightened", `House at ${usd(h.a.householdSpent)} of ${usd(h.a.cap)}. What's left is split per chain; Pip needs a co-sign.`];
   else if (h?.name === "RulesMirrored") [icon, title, text] = ["gavel", "Rule copied", `${CATS[h.a.category]?.name} v${h.a.version} agreed on Base by two adults, copied to Unichain.`];
   else if (h?.name === "MemberMirrored") [icon, title, text] = h.a.unfreeze ? ["lock_open", "Freeze lifted", `An adult lifted ${nameOf(h.a.member)}'s freeze on Base. Lifted on Unichain too.`] : ["person_add", "Member copied", `${nameOf(h.a.member)} joined as ${ROLE[Number(h.a.role)]}. Unichain knows too.`];
-  else text = o ? `${nameOf(o.a.member)} spent ${usd(o.a.amount)} on ${o.c.short}. House at ${l.ledger ? usd(l.ledger.a.householdSpent) : "?"}. No callback needed.` : "Ledger updated.";
+  else text = o ? `${nameOf(o.a.member)} spent ${usd(o.a.amount)} on ${o.c.short}${reasonOf(o) ? ` ("${reasonOf(o)}")` : ""}. House at ${l.ledger ? usd(l.ledger.a.householdSpent) : "?"}. No callback needed.` : "Ledger updated.";
   const hot = hotLoop(l);
   const tx = o ? txLink(o.c, o.lg.transactionHash) : "";
   const lat = l.callbacks.length && l.latency !== null ? `${l.latency <= 0 ? "<1" : l.latency} s` : ago(l.ts);
   return `<div class="hs ${hot ? "hot" : ""}"><div class="hs-h"><span class="hs-n">Step ${String(i + 1).padStart(2, "0")}</span><span class="muted">${lat}</span></div>
     <p class="hs-t">${ms(icon)}${title}</p><p>${esc(text)}</p>
     <span class="hs-tx">${tx}${l.callbacks.length ? ` → ${l.callbacks.length} callback${l.callbacks.length > 1 ? "s" : ""}` : ""}</span></div>`;
+}
+
+// Pip's receipts: what the AI said, and what the code and Hob did about it (audit trail, all on-chain)
+function renderReceipts(loops) {
+  const isPip = (e) => e.a.member?.toLowerCase() === WHO.agent.toLowerCase();
+  const rows = EV.filter((e) => (e.name === "Spent" || e.name === "SpendRequested") && isPip(e)).slice(-8).reverse();
+  const hobFor = (e) => {
+    const l = loops.find((x) => x.origin === e);
+    const h = l?.headline;
+    if (h?.name === "VelocityBreach") return ["hot", "gpp_maybe", "Hob froze Pip on every chain (pace)"];
+    if (h?.name === "CategoryEscalated") return ["hot", "ac_unit", `Hob set ${CATS[h.a.category]?.name} ${MODE[h.a.mode]} everywhere`];
+    return ["", "visibility", "Hob counted it in the house ledger"];
+  };
+  const body = rows.map((e) => {
+    const why = reasonOf(e);
+    const coSigned = APPROVE_TX.get(e.lg.transactionHash);
+    const [code, codeIcon] = e.name === "SpendRequested" ? ["Held: a second adult must co-sign", "pending"] : coSigned ? ["Co-signed by an adult, then paid", "how_to_reg"] : ["Within the rules: paid", "check_circle"];
+    const [hot, hobIcon, hob] = e.name === "Spent" ? hobFor(e) : ["", "hourglass_top", "Hob waits for the co-sign"];
+    return `<li class="rc ${hot}"><div class="rc-said"><span class="rc-k">${ms("smart_toy", "sm")} Pip reasons</span><q>${why ? esc(why) : "no reason recorded"}</q><span class="muted small">${usd(e.a.amount)} USDC · ${CATS[e.a.category]?.name} · ${e.c.short} · ${ago(e.ts)}</span></div>
+      <div class="rc-step"><span class="rc-k">${ms("gavel", "sm")} Code enforces</span><span>${ms(codeIcon, "sm")} ${code}</span></div>
+      <div class="rc-step"><span class="rc-k">${ms("bolt", "sm")} Hob reacts</span><span>${ms(hobIcon, "sm")} ${hob}</span></div>
+      <span class="rc-tx">${txLink(e.c, e.lg.transactionHash)}</span></li>`;
+  }).join("");
+  html("receipts", body ? `<ol class="receipts">${body}</ol>` : `<p class="empty">No purchase by Pip yet. Each one will appear here with Pip's own words.</p>`);
+  const refusedNoReason = REC?.runs?.flatMap((r) => r.checks ?? []).filter((c) => /without saying why/i.test(c.label) && c.ok).length ?? 0;
+  html("receipts-meta", `${rows.length ? `last ${rows.length} of Pip's purchases` : ""}${refusedNoReason ? ` · ${refusedNoReason} buy${refusedNoReason > 1 ? "s" : ""} with no reason refused on-chain` : ""}`);
 }
 
 function renderHobSteps(loops) {
@@ -656,6 +694,7 @@ function renderDashboard() {
   renderChart();
   renderRoster();
   renderHobSteps(loops);
+  renderReceipts(loops);
   return loops;
 }
 
@@ -747,7 +786,7 @@ function renderFeed() {
   const hot = new Set(["VelocityBreach", "CategoryEscalated", "MemberFrozen"]);
   html("feed", EV.slice(-60)
     .reverse()
-    .map((e) => `<li class="${e.kind} ${hot.has(e.name) || (e.name === "CategoryModeChanged" && Number(e.a.mode) === 2) ? "hot" : ""}"><span class="t">[${new Date(e.ts * 1000).toLocaleTimeString("en-GB")}]</span><span class="k ${e.c.key}">${e.c.key === "reactive" ? "HOB" : e.c.short.toUpperCase()}</span><span class="w">${DESCRIBE[e.name](e.a)}</span>${txLink(e.c, e.lg.transactionHash)}</li>`)
+    .map((e) => `<li class="${e.kind} ${hot.has(e.name) || (e.name === "CategoryModeChanged" && Number(e.a.mode) === 2) ? "hot" : ""}"><span class="t">[${new Date(e.ts * 1000).toLocaleTimeString("en-GB")}]</span><span class="k ${e.c.key}">${e.c.key === "reactive" ? "HOB" : e.c.short.toUpperCase()}</span><span class="w">${describe(e)}</span>${txLink(e.c, e.lg.transactionHash)}</li>`)
     .join("") || `<li class="muted">Waiting for the first event…</li>`);
   $("term-clock").textContent = `${new Date(Number(S.now) * 1000).toLocaleTimeString("en-GB")} chain time`;
 }
@@ -774,8 +813,8 @@ function renderHood(loops) {
   const crit = [
     ["Execution", `${loops.length} reactive transactions and ${cbCount} callbacks seen on this deployment, read live from the chains. Every loop under <i>The House</i> links its origin, Reactive and callback transactions. <i>Scenarios proven on-chain</i> below lists each recorded situation, its checks (refusals included) and the automatic rollovers; the same runs are in <code>docs/EVIDENCE.md</code>.`],
     ["Integration", "Hob lives on Reactive, the only place both chains meet. It holds the household ledger, counts Pip's pace across chains and copies the adults' decisions. Remove it and every cross-chain guarantee is gone (see the comparison above)."],
-    ["Usefulness", "Shared money with shared rules: two adults decide, Pip (the AI shopper) can't overrule them, and Hob's response escalates (NORMAL → TIGHT → FROZEN) instead of a single kill switch."],
-    ["Craft", "57 tests including fuzzed invariants, 17 of 17 mutants caught, a sealed setup with no admin keys, stale and duplicate messages handled without paying for failed callbacks, and a heaviest <code>react()</code> of ~493k gas, under the 900k cap."],
+    ["Usefulness", "An AI agent with a budget, and the answer to <i>who enforces its rules when nobody is watching?</i> Two adults decide, Pip must say why for every buy (on-chain), it can't overrule them, and Hob's response escalates (NORMAL → TIGHT → FROZEN) on every chain, even while everyone is offline."],
+    ["Craft", "62 tests including fuzzed invariants, 18 of 18 mutants caught, a sealed setup with no admin keys, stale and duplicate messages handled without paying for failed callbacks, and a heaviest <code>react()</code> of ~493k gas, under the 900k cap."],
   ];
   html("criteria", crit.map(([k, v]) => `<div class="crit"><h3>${k}</h3><p>${v}</p></div>`).join(""));
 
@@ -913,6 +952,8 @@ const PLAIN = {
   BadProposal: "unknown proposal",
   OnlyHome: "household decisions are made on the home chain (Base)",
   LastAdult: "the household must keep at least one adult",
+  ReasonRequired: "Pip must say why: an AI purchase without a reason is refused",
+  ReasonTooLong: "keep the reason to one sentence (160 bytes)",
 };
 function explain(e) {
   const err = errName(e);
@@ -956,10 +997,10 @@ async function ratify(cat, rule, log) {
   log("Bob approved: 2 of 2 adults, ratified on Base", r2);
 }
 
-async function spendLogged(who, c, cat, amount, log) {
-  const r = await send(who, c, "spend", [cat, SHOP, amount]);
-  if (emitted(r, c, "SpendRequested")) log(`${nameOf(WHO[who])} asked for ${usd(amount)} on ${c.short}: waiting for a second adult`, r);
-  else log(`${nameOf(WHO[who])} spent ${usd(amount)} on ${c.short}`, r);
+async function spendLogged(who, c, cat, amount, log, why = who === "agent" ? "Restocking the pantry" : "Weekly groceries") {
+  const r = await send(who, c, "spend", [cat, SHOP, amount, why]);
+  if (emitted(r, c, "SpendRequested")) log(`${nameOf(WHO[who])} asked for ${usd(amount)} on ${c.short} (“${why}”): waiting for a second adult`, r);
+  else log(`${nameOf(WHO[who])} spent ${usd(amount)} on ${c.short} (“${why}”)`, r);
   return r;
 }
 
@@ -998,7 +1039,7 @@ const STEPS = [
   {
     title: "Welcome Pip",
     lead: "The AI shopper lives here, but doesn't decide.",
-    story: "The household adds <b>Pip</b>, an AI shopping agent. Pip can <b>buy</b> and <b>suggest</b> rules, but can never approve a rule, co-sign a purchase or lift a freeze. That takes the same two-adult decision.",
+    story: "The household adds <b>Pip</b>, an AI shopping agent. Pip can <b>buy</b> and <b>suggest</b> rules, but can never approve a rule, co-sign a purchase or lift a freeze. That takes the same two-adult decision. And Pip must <b>say why</b> for every buy: its words are written on-chain next to the money.",
     reactive: "Base emits <code>MemberSet</code>. Hob learns Pip's role, so it applies the stricter pace limits for AI shoppers, and calls <code>cbSetMember</code> on Unichain.",
     action: "Alice adds Pip · Bob approves",
     checks: (s) => [
@@ -1029,8 +1070,8 @@ const STEPS = [
     disabled: (s) => (s.budget[G].base.mode > 0 ? "Groceries is already past the line this period" : null),
     async run(log) {
       const before = S.budget[G].spent;
-      await spendLogged("alice", C.base, G, U(40), log);
-      await spendLogged("bob", C.uni, G, U(30), log);
+      await spendLogged("alice", C.base, G, U(40), log, "Farmers market: vegetables and fruit");
+      await spendLogged("bob", C.uni, G, U(30), log, "Bakery: bread for the week");
       const t = await waitFor((s) => s.budget[G].spent >= before + U(70));
       log(`Hob's house ledger: ${usd(S.budget[G].spent)} / ${usd(S.budget[G].cap)} (${t.toFixed(1)} s)`);
     },
@@ -1053,7 +1094,7 @@ const STEPS = [
       for (const c of plan) {
         i++;
         try {
-          const r = await spendLogged("agent", c, G, U(15), (t, r) => log(`buy ${i}/7 · ${t}`, r));
+          const r = await spendLogged("agent", c, G, U(15), (t, r) => log(`buy ${i}/7 · ${t}`, r), `Snack restock, order ${i}`);
           if (emitted(r, c, "SpendRequested")) {
             log("Groceries just went TIGHT, so Pip now needs a co-sign for every buy. Stopping the burst");
             return;
@@ -1146,7 +1187,7 @@ const STEPS = [
         log(`FROZEN on both chains (${t.toFixed(1)} s): ${usd(S.budget[G].spent)} / ${usd(S.budget[G].cap)}`);
       }
       try {
-        await send("alice", C.base, "spend", [G, SHOP, U(10)]);
+        await send("alice", C.base, "spend", [G, SHOP, U(10), "One more grocery run"]);
         log("Unexpected: the extra purchase went through");
       } catch (e) {
         log(`Alice tries 10 more on Base: refused (${explain(e)})`);
@@ -1182,7 +1223,7 @@ const STEPS = [
 ];
 
 async function cosignDemo(log) {
-  const r = await spendLogged("bob", C.uni, G, U(160), log);
+  const r = await spendLogged("bob", C.uni, G, U(160), log, "Birthday cake and party food for Sam");
   if (!emitted(r, C.uni, "SpendRequested")) return;
   const n = await read(C.uni, "pendingCount");
   log("Alice co-signed on Unichain", await send("alice", C.uni, "approveSpend", [n - 1n]));
@@ -1275,7 +1316,10 @@ document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-tab]");
   if (t) {
     e.preventDefault();
-    return showTab(t.dataset.tab);
+    showTab(t.dataset.tab);
+    const to = t.getAttribute("href");
+    if (to && to.length > 1 && to.startsWith("#")) document.querySelector(to)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
   }
   if (e.target.closest("#roster-unfreeze")) return $("btn-unfreeze").click();
   const s = e.target.closest("[data-step]");
@@ -1308,7 +1352,8 @@ $("btn-spend").onclick = () =>
   guard(async () => {
     const who = $("as").value;
     const c = C[$("on").value];
-    const r = await send(who, c, "spend", [Number($("cat").value), SHOP, U($("amt").value || "0")]);
+    const why = $("why").value.trim();
+    const r = await send(who, c, "spend", [Number($("cat").value), SHOP, U($("amt").value || "0"), why]);
     toast(
       emitted(r, c, "SpendRequested")
         ? `${nameOf(WHO[who])} asked for ${$("amt").value} USDC on ${c.short}: a second adult must co-sign (see The House → co-sign queue)`

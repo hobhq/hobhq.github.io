@@ -7,7 +7,7 @@ const shop = "0x000000000000000000000000000000000000c0DE";
 for (const [k, n] of [["base", 3], ["uni", 4]]) {
   const c = { ...N[k], vault: D.chains[k].vault };
   for (let i = 0; i < n; i++) {
-    const hash = await wallet(c, K.agent).writeContract({ address: c.vault, abi: V.abi, functionName: "spend", args: [0, shop, 20_000000n] });
+    const hash = await wallet(c, K.agent).writeContract({ address: c.vault, abi: V.abi, functionName: "spend", args: [0, shop, 20_000000n, `Snack restock, order ${i + 1}`] });
     const r = await pub(c).waitForTransactionReceipt({ hash });
     console.log(`agent buy on ${c.name}: ${r.status}`);
   }

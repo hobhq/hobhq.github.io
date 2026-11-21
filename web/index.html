@@ -75,8 +75,8 @@
       <section class="page-head">
         <div class="ph-text">
           <div class="chips" id="chips"></div>
-          <h1>Autonomous Household Governance</h1>
-          <p class="lede">Two adults agree on the house rules. Pip, an AI shopper, buys. Hob, a guardian running on Reactive Network, watches Base and Unichain and enforces the rules by itself, with no bot, no cron and no admin.</p>
+          <h1>AI reasons. Code enforces. Hob reacts.</h1>
+          <p class="lede">Who enforces an AI agent's rules when nobody is watching? Here, the household does. Pip, an AI shopper, spends from a shared vault on Base and Unichain and must say why. Alice and Bob agree on the rules together. Hob, a guardian on Reactive Network, watches both chains and enforces those rules by itself, even while Pip and the adults are offline. No bot, no cron, no admin.</p>
         </div>
         <div class="ph-actions">
           <button class="btn" data-tab="hood"><span class="ms accent">shield_with_heart</span>Verify on-chain</button>
@@ -91,6 +91,12 @@
           <div class="hero-chains" id="hero-chains"></div>
         </div>
         <div class="hero-fig" id="hero-fig"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg></div>
+      </section>
+
+      <section class="duty" aria-label="Who does what">
+        <div class="duty-c"><span class="ms accent">smart_toy</span><div><h3>Pip reasons</h3><p>The AI shopper decides what to buy and writes <b>why</b>, on-chain, in the same transaction as the money. No reason, no purchase.</p></div></div>
+        <div class="duty-c"><span class="ms accent">gavel</span><div><h3>Code enforces</h3><p>Each vault checks the rules the adults ratified: max per purchase, co-sign above a line, a pace per hour. Pip can't approve, co-sign or unfreeze.</p></div></div>
+        <div class="duty-c"><span class="ms accent">bolt</span><div><h3>Hob reacts</h3><p>On Reactive, Hob remembers the whole house across chains and reacts: tighten, freeze, copy a decision, start a new <span class="pw">month</span>. Nobody has to be awake.</p></div></div>
       </section>
     </div>
 
@@ -124,6 +130,15 @@
         <div class="roster" id="roster"></div>
       </section>
 
+      <section class="glass-card section" id="receipts-card">
+        <div class="sec-head">
+          <div><span class="eyebrow">Audit trail · every line is on-chain</span><h2>Pip's receipts</h2></div>
+          <span class="meta" id="receipts-meta"></span>
+        </div>
+        <p class="muted small sec-lede">You don't have to trust what the agent says it did. Each purchase below shows Pip's own words (<code>SpendReason</code>), what the vault allowed, and how Hob reacted, with the transaction to check it.</p>
+        <div id="receipts"></div>
+      </section>
+
       <section class="glass-card section">
         <div class="sec-head">
           <div><span class="eyebrow">Reactive orchestration log</span><h2>What Hob did</h2></div>
@@ -142,6 +157,7 @@
           <label>Target chain <select id="on"></select></label>
           <label>Expense category <select id="cat"><option value="0">Groceries</option><option value="1">Rent</option></select></label>
           <label>Amount (USDC) <input id="amt" type="number" min="1" step="1" value="40" /></label>
+          <label class="wide">Reason (Pip must give one) <input id="why" type="text" maxlength="160" value="Weekly groceries" /></label>
         </div>
         <div class="form-actions">
           <button id="btn-spend" class="btn primary"><span class="ms">send</span>Dispatch spend</button>
@@ -203,6 +219,18 @@
     <div class="tab" id="tab-hood" hidden>
       <div class="grid">
         <section class="glass-card section span2">
+          <div class="sec-head"><div><span class="eyebrow">On-chain reactivity, in one household</span><h2>Seven questions, answered with transactions</h2></div></div>
+          <ol class="qa">
+            <li><h3>Can a contract react without a bot or keeper?</h3><p>Yes. The <span class="pw">month</span> resets with no transaction from anyone: the period id travels inside every spend event, and Hob keeps one ledger per period.</p><span class="qa-proof"><a href="#recorded-sec">Rollovers, below</a></span></li>
+            <li><h3>Observe, remember, evaluate, react?</h3><p>Hob subscribes to 3 events on 2 chains, keeps a ledger per period and category, compares it with the rules, and calls back every chain only when something must change.</p><span class="qa-proof"><a href="#loops" data-tab="dash">Every loop, with its transactions</a></span></li>
+            <li><h3>One shared view across chains?</h3><p>Alice spends on Base, Bob on Unichain. Neither vault can see the other. Hob sums both into one house budget and splits what is left per chain at the tighten line.</p><span class="qa-proof"><a href="#ledger" data-tab="home">The house ledger</a></span></li>
+            <li><h3>Stateful, not stateless?</h3><p>Pip's pace is counted across chains and over time: 6 buys an hour pass, the 7th freezes Pip everywhere. That needs memory of what already happened.</p><span class="qa-proof"><a href="#recorded-sec">Scenario: the pace limit is exact</a></span></li>
+            <li><h3>Who enforces an AI's rules when nobody is watching?</h3><p>The adults ratify the rules, the vaults enforce them on every purchase, and Hob enforces what no single chain can see. Pip can propose, never approve, co-sign or unfreeze.</p><span class="qa-proof"><a href="#recorded-sec">Refusals proven on-chain</a></span></li>
+            <li><h3>Can you audit what the agent did?</h3><p>Every purchase by Pip carries its reason on-chain, in the same transaction as the money. A purchase without one is refused. Hob's reactions are on Reactive, with their callbacks.</p><span class="qa-proof"><a href="#receipts-card" data-tab="home">Pip's receipts</a></span></li>
+            <li><h3>What happens when the agent goes offline?</h3><p>Nothing stops. Pip can sleep and the adults can be away: Hob keeps tightening, freezing, copying decisions and starting new periods.</p><span class="qa-proof"><a href="#recorded-sec">No transaction sent by anyone</a></span></li>
+          </ol>
+        </section>
+        <section class="glass-card section span2">
           <div class="sec-head"><div><span class="eyebrow">The case for Reactive</span><h2>Why this needs Reactive</h2></div></div>
           <div class="compare">
             <div class="col without">
@@ -213,6 +241,7 @@
                 <li>Groceries can be overspent by shopping on both chains.</li>
                 <li>A rule changed on Base has to be re-entered on Unichain by hand, by someone with admin rights there.</li>
                 <li>The <span class="pw">month</span> resets only if a keeper or cron job remembers.</li>
+                <li>When Pip's session ends or the bot operator goes offline, nobody is watching. What the agent did lives in its operator's private logs.</li>
               </ul>
             </div>
             <div class="col with">
@@ -223,6 +252,7 @@
                 <li>Tight at the line (what's left is split per chain), frozen at the cap.</li>
                 <li>Rules and members are copied by callbacks only. There is no admin on the mirrors.</li>
                 <li>No cron: the period id travels inside every spend event.</li>
+                <li>Pip can sleep; Hob keeps watching. Pip's reasons and Hob's reactions are on-chain for anyone to check.</li>
               </ul>
             </div>
           </div>
@@ -261,10 +291,10 @@
         <section class="glass-card section">
           <div class="sec-head"><div><span class="eyebrow">Craft</span><h2>Guarantees, tested</h2></div></div>
           <ul class="ticks">
-            <li><b>57 tests</b>: 50 unit tests (one per house rule) and 7 fuzzed invariants (256 runs × 60 calls)</li>
+            <li><b>62 tests</b>: 55 unit tests (one per house rule, including "Pip must say why") and 7 fuzzed invariants (256 runs × 60 calls)</li>
             <li><b>Never above the cap</b> when Reactive answers before the next action</li>
             <li><b>Overshoot under latency</b> is no more than what is in flight; once delivered, every chain is FROZEN and the ledger equals the sum of the chains</li>
-            <li><b>Mutation testing</b>: 17 planted bugs, all 17 caught</li>
+            <li><b>Mutation testing</b>: 18 planted bugs, all 18 caught</li>
             <li><b>Local and synchronous checks</b> on each vault: max per purchase, co-sign, per-role rate limit</li>
           </ul>
           <pre class="cmd">forge test

@@ -33,8 +33,8 @@ const id = await count();
 await tx("base", "alice", "proposeMember", [D.members.agent, 2]);
 await tx("base", "bob", "approveProposal", [id]);
 await sleep(name === "local" ? 1500 : 15000); // let the mirror learn the agent
-await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 140_000000n]);
-await tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 120_000000n]);
-await tx("base", "agent", "spend", [CATEGORY.GROCERIES, shop, 35_000000n]);
-await tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 95_000000n]);
+await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 140_000000n, "Weekly supermarket shop"]);
+await tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 120_000000n, "Bakery and dairy"]);
+await tx("base", "agent", "spend", [CATEGORY.GROCERIES, shop, 35_000000n, "Fruit for school lunches"]);
+await tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 95_000000n, "Butcher: Sunday roast"]);
 console.log("done: ~390 / 1000 groceries spent across both chains");

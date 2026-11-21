@@ -15,6 +15,7 @@ import {IERC20Min} from "../src/interfaces/IERC20Min.sol";
 import {IReactive} from "reactive-lib/interfaces/IReactive.sol";
 
 contract HobTest is ReactiveSim {
+    string constant WHY = "weekly groceries";
     uint256 constant BASE = 84532; // home (Base Sepolia)
     uint256 constant UNI = 1301; // mirror (Unichain Sepolia)
     uint8 constant GROCERIES = 0;
@@ -177,9 +178,9 @@ contract HobTest is ReactiveSim {
     function test_spend_below_cosign_executes_and_ledger_aggregates_chains() public {
         _standardHouse();
         vm.prank(alice);
-        home.spend(GROCERIES, shop, 100e6);
+        home.spend(GROCERIES, shop, 100e6, WHY);
         vm.prank(bob);
-        mirror.spend(GROCERIES, shop, 120e6);
+        mirror.spend(GROCERIES, shop, 120e6, WHY);
         _relay();
 
         assertEq(usdcBase.balanceOf(shop), 100e6);
@@ -193,13 +194,13 @@ contract HobTest is ReactiveSim {
         _standardHouse();
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(HobVault.AboveTxCap.selector, 250e6, 200e6));
-        home.spend(GROCERIES, shop, 250e6);
+        home.spend(GROCERIES, shop, 250e6, WHY);
     }
 
     function test_cosign_flow() public {
         _standardHouse();
         vm.prank(alice);
-        uint256 id = home.spend(GROCERIES, shop, 180e6); // > 150 co-sign threshold
+        uint256 id = home.spend(GROCERIES, shop, 180e6, WHY); // > 150 co-sign threshold
         assertEq(usdcBase.balanceOf(shop), 0);
 
         vm.prank(alice);
@@ -222,7 +223,7 @@ contract HobTest is ReactiveSim {
     function test_pending_expires() public {
         _standardHouse();
         vm.prank(alice);
-        uint256 id = home.spend(GROCERIES, shop, 180e6);
+        uint256 id = home.spend(GROCERIES, shop, 180e6, WHY);
         vm.warp(block.timestamp + 1 days + 1);
         vm.prank(bob);
         vm.expectRevert(HobVault.Expired.selector);
@@ -233,22 +234,22 @@ contract HobTest is ReactiveSim {
         _standardHouse();
         for (uint256 i; i < 5; ++i) {
             vm.prank(agent);
-            home.spend(GROCERIES, shop, 1e6);
+            home.spend(GROCERIES, shop, 1e6, WHY);
         }
         vm.prank(agent);
         vm.expectRevert(abi.encodeWithSelector(HobVault.RateLimited.selector, uint32(5), uint32(1 hours)));
-        home.spend(GROCERIES, shop, 1e6);
+        home.spend(GROCERIES, shop, 1e6, WHY);
 
         vm.warp(block.timestamp + 1 hours);
         vm.prank(agent);
-        home.spend(GROCERIES, shop, 1e6); // window rolled
+        home.spend(GROCERIES, shop, 1e6, WHY); // window rolled
     }
 
     function test_non_member_cannot_spend() public {
         _standardHouse();
         vm.prank(shop);
         vm.expectRevert(HobVault.NotMember.selector);
-        home.spend(GROCERIES, shop, 1e6);
+        home.spend(GROCERIES, shop, 1e6, WHY);
     }
 
     // ------------------------------------------------------------------ reactive: household-wide cap
@@ -258,11 +259,11 @@ contract HobTest is ReactiveSim {
         // 4 x 140 = 560 on Base, 2 x 140 = 280 on Unichain → 840 = 84% of 1000
         for (uint256 i; i < 4; ++i) {
             vm.prank(alice);
-            home.spend(GROCERIES, shop, 140e6);
+            home.spend(GROCERIES, shop, 140e6, WHY);
         }
         for (uint256 i; i < 2; ++i) {
             vm.prank(bob);
-            mirror.spend(GROCERIES, shop, 140e6);
+            mirror.spend(GROCERIES, shop, 140e6, WHY);
         }
         _relay();
 
@@ -277,13 +278,13 @@ contract HobTest is ReactiveSim {
 
         // Agent now needs a co-sign, even for small spends.
         vm.prank(agent);
-        uint256 id = mirror.spend(GROCERIES, shop, 10e6);
+        uint256 id = mirror.spend(GROCERIES, shop, 10e6, WHY);
         assertTrue(id != type(uint256).max, "agent spend became a request");
 
         // An adult cannot spend more than this chain's slice.
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(HobVault.AboveLocalLimit.selector, 650e6, 640e6));
-        home.spend(GROCERIES, shop, 90e6);
+        home.spend(GROCERIES, shop, 90e6, WHY);
     }
 
     function test_freeze_when_household_cap_reached() public {
@@ -292,11 +293,11 @@ contract HobTest is ReactiveSim {
         // Jump from 0 to 1000 across chains before any reaction arrives (worst case latency).
         for (uint256 i; i < 3; ++i) {
             vm.prank(alice);
-            home.spend(GROCERIES, shop, 200e6);
+            home.spend(GROCERIES, shop, 200e6, WHY);
         }
         for (uint256 i; i < 2; ++i) {
             vm.prank(bob);
-            mirror.spend(GROCERIES, shop, 200e6);
+            mirror.spend(GROCERIES, shop, 200e6, WHY);
         }
         _relay();
 
@@ -304,7 +305,7 @@ contract HobTest is ReactiveSim {
         assertEq(uint8(_mode(mirror, GROCERIES)), uint8(HobTypes.Mode.FROZEN));
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(HobVault.CategoryFrozen.selector, GROCERIES));
-        home.spend(GROCERIES, shop, 1e6);
+        home.spend(GROCERIES, shop, 1e6, WHY);
     }
 
     function test_new_period_resets_without_cron() public {
@@ -312,7 +313,7 @@ contract HobTest is ReactiveSim {
         vm.warp(block.timestamp + PERIOD);
         assertEq(uint8(_mode(home, GROCERIES)), uint8(HobTypes.Mode.NORMAL));
         vm.prank(alice);
-        home.spend(GROCERIES, shop, 50e6);
+        home.spend(GROCERIES, shop, 50e6, WHY);
         _relay();
         assertEq(_household(GROCERIES), 50e6, "fresh ledger for the new period");
     }
@@ -383,9 +384,9 @@ contract HobTest is ReactiveSim {
         // Both adults spend in parallel on two chains; NOTHING is relayed yet (latency).
         for (uint256 i; i < 5; ++i) {
             vm.prank(alice);
-            home.spend(GROCERIES, shop, 140e6);
+            home.spend(GROCERIES, shop, 140e6, WHY);
             vm.prank(bob);
-            mirror.spend(GROCERIES, shop, 140e6);
+            mirror.spend(GROCERIES, shop, 140e6, WHY);
         }
         Vm.Log[] memory held = _holdLogs();
         // 1400 spent against a 1000 cap: this is the latency window with no reactive layer at all.
@@ -407,11 +408,11 @@ contract HobTest is ReactiveSim {
         // local limit (5/hour), but together it's 7 > 6 → household-wide breaker.
         for (uint256 i; i < 3; ++i) {
             vm.prank(agent);
-            home.spend(GROCERIES, shop, 20e6);
+            home.spend(GROCERIES, shop, 20e6, WHY);
         }
         for (uint256 i; i < 4; ++i) {
             vm.prank(agent);
-            mirror.spend(GROCERIES, shop, 20e6);
+            mirror.spend(GROCERIES, shop, 20e6, WHY);
         }
         _relay();
 
@@ -422,21 +423,21 @@ contract HobTest is ReactiveSim {
 
         vm.prank(agent);
         vm.expectRevert(abi.encodeWithSelector(HobVault.MemberIsFrozen.selector, fh));
-        home.spend(GROCERIES, shop, 1e6);
+        home.spend(GROCERIES, shop, 1e6, WHY);
         vm.prank(agent);
         vm.expectRevert(abi.encodeWithSelector(HobVault.MemberIsFrozen.selector, fm));
-        mirror.spend(GROCERIES, shop, 1e6);
+        mirror.spend(GROCERIES, shop, 1e6, WHY);
     }
 
     function test_velocity_by_amount() public {
         _standardHouse();
         // 150 + 150 + 10 = 310 > 300 in one hour across chains
         vm.prank(agent);
-        home.spend(GROCERIES, shop, 150e6);
+        home.spend(GROCERIES, shop, 150e6, WHY);
         vm.prank(agent);
-        mirror.spend(GROCERIES, shop, 150e6);
+        mirror.spend(GROCERIES, shop, 150e6, WHY);
         vm.prank(agent);
-        mirror.spend(GROCERIES, shop, 10e6);
+        mirror.spend(GROCERIES, shop, 10e6, WHY);
         _relay();
         (, uint64 fm,,) = mirror.members(agent);
         assertGt(fm, block.timestamp);
@@ -447,9 +448,9 @@ contract HobTest is ReactiveSim {
         // 6 x 150 = 900 in one hour across chains: fine for an adult, would freeze an agent
         for (uint256 i; i < 3; ++i) {
             vm.prank(alice);
-            home.spend(GROCERIES, shop, 150e6);
+            home.spend(GROCERIES, shop, 150e6, WHY);
             vm.prank(alice);
-            mirror.spend(GROCERIES, shop, 150e6);
+            mirror.spend(GROCERIES, shop, 150e6, WHY);
         }
         _relay();
         (, uint64 f,,) = home.members(alice);
@@ -463,9 +464,9 @@ contract HobTest is ReactiveSim {
         // one spend that hits the cap AND breaches agent velocity in the same reaction
         for (uint256 i; i < 3; ++i) {
             vm.prank(agent);
-            home.spend(GROCERIES, shop, 1e6);
+            home.spend(GROCERIES, shop, 1e6, WHY);
             vm.prank(agent);
-            mirror.spend(GROCERIES, shop, 1e6);
+            mirror.spend(GROCERIES, shop, 1e6, WHY);
         }
         _relay();
         vm.warp(block.timestamp + 2 hours);
@@ -474,7 +475,7 @@ contract HobTest is ReactiveSim {
         _relay();
 
         vm.prank(agent);
-        mirror.spend(GROCERIES, shop, 94e6); // 6 + 94 = 100 → FROZEN broadcast
+        mirror.spend(GROCERIES, shop, 94e6, WHY); // 6 + 94 = 100 → FROZEN broadcast
         Vm.Log[] memory held = _holdLogs();
         uint256 before = gasleft();
         _deliverLogs(held);
@@ -502,7 +503,7 @@ contract HobTest is ReactiveSim {
         test_agent_frozen_everywhere_on_cross_chain_burst();
         vm.warp(block.timestamp + 1 days + 1);
         vm.prank(agent);
-        mirror.spend(GROCERIES, shop, 1e6);
+        mirror.spend(GROCERIES, shop, 1e6, WHY);
     }
 
     function test_remove_member_propagates() public {
@@ -514,7 +515,7 @@ contract HobTest is ReactiveSim {
         _relay();
         vm.prank(agent);
         vm.expectRevert(HobVault.NotMember.selector);
-        mirror.spend(GROCERIES, shop, 1e6);
+        mirror.spend(GROCERIES, shop, 1e6, WHY);
     }
 
     // ------------------------------------------------------------------ security
@@ -542,7 +543,7 @@ contract HobTest is ReactiveSim {
     function test_react_ignores_unknown_emitters_and_duplicates() public {
         _standardHouse();
         vm.prank(alice);
-        home.spend(GROCERIES, shop, 100e6);
+        home.spend(GROCERIES, shop, 100e6, WHY);
         Vm.Log[] memory held = _holdLogs();
 
         // deliver the Spent log twice with the same tx hash / log index
@@ -603,9 +604,9 @@ contract HobTest is ReactiveSim {
         console2.log("== 3. Normal week: adults shop on Base and Unichain");
         for (uint256 i; i < 2; ++i) {
             vm.prank(alice);
-            home.spend(GROCERIES, shop, 140e6);
+            home.spend(GROCERIES, shop, 140e6, WHY);
             vm.prank(bob);
-            mirror.spend(GROCERIES, shop, 140e6);
+            mirror.spend(GROCERIES, shop, 140e6, WHY);
         }
         _relay();
         console2.log("   household spent, all chains:", _household(GROCERIES) / 1e6);
@@ -613,11 +614,11 @@ contract HobTest is ReactiveSim {
         console2.log("== 4. Agent bursts: 3 buys on Base + 4 on Unichain (each chain alone is under its 5/h limit)");
         for (uint256 i; i < 3; ++i) {
             vm.prank(agent);
-            home.spend(GROCERIES, shop, 20e6);
+            home.spend(GROCERIES, shop, 20e6, WHY);
         }
         for (uint256 i; i < 4; ++i) {
             vm.prank(agent);
-            mirror.spend(GROCERIES, shop, 20e6);
+            mirror.spend(GROCERIES, shop, 20e6, WHY);
         }
         _relay();
         (, uint64 fb,,) = home.members(agent);
@@ -627,7 +628,7 @@ contract HobTest is ReactiveSim {
 
         console2.log("== 5. Alice buys 140 on Base -> household crosses 80%");
         vm.prank(alice);
-        home.spend(GROCERIES, shop, 140e6);
+        home.spend(GROCERIES, shop, 140e6, WHY);
         _relay();
         (, uint128 lb, uint128 sb) = home.categoryStatus(GROCERIES);
         (, uint128 lu, uint128 su) = mirror.categoryStatus(GROCERIES);
@@ -637,9 +638,9 @@ contract HobTest is ReactiveSim {
 
         console2.log("== 6. Each adult uses their chain's slice -> household cap reached");
         vm.prank(alice);
-        home.spend(GROCERIES, shop, 80e6);
+        home.spend(GROCERIES, shop, 80e6, WHY);
         vm.prank(bob);
-        mirror.spend(GROCERIES, shop, 80e6);
+        mirror.spend(GROCERIES, shop, 80e6, WHY);
         _relay();
         console2.log("   household spent:", _household(GROCERIES) / 1e6);
         console2.log("   mode Base / Unichain (2 = FROZEN):", uint8(_mode(home, GROCERIES)), uint8(_mode(mirror, GROCERIES)));
@@ -673,11 +674,11 @@ contract HobTest is ReactiveSim {
     function _freezeAgentByBurst() internal {
         for (uint256 i; i < 3; ++i) {
             vm.prank(agent);
-            home.spend(GROCERIES, shop, 10e6);
+            home.spend(GROCERIES, shop, 10e6, WHY);
         }
         for (uint256 i; i < 4; ++i) {
             vm.prank(agent);
-            mirror.spend(GROCERIES, shop, 10e6);
+            mirror.spend(GROCERIES, shop, 10e6, WHY);
         }
         _relay();
     }
@@ -690,7 +691,7 @@ contract HobTest is ReactiveSim {
     function test_no_rule_means_no_spending() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(HobVault.CategoryInactive.selector, GROCERIES));
-        home.spend(GROCERIES, shop, 10e6);
+        home.spend(GROCERIES, shop, 10e6, WHY);
     }
 
     /// Rule: pausing a category is a household decision and applies on every chain.
@@ -704,10 +705,10 @@ contract HobTest is ReactiveSim {
 
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(HobVault.CategoryInactive.selector, GROCERIES));
-        home.spend(GROCERIES, shop, 10e6);
+        home.spend(GROCERIES, shop, 10e6, WHY);
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(HobVault.CategoryInactive.selector, GROCERIES));
-        mirror.spend(GROCERIES, shop, 10e6);
+        mirror.spend(GROCERIES, shop, 10e6, WHY);
     }
 
     /// Rule: one adult is one vote. Approving twice does not reach quorum.
@@ -749,7 +750,7 @@ contract HobTest is ReactiveSim {
     function test_cancelled_request_cannot_be_cosigned() public {
         _standardHouse();
         vm.prank(bob);
-        uint256 req = home.spend(GROCERIES, shop, 180e6);
+        uint256 req = home.spend(GROCERIES, shop, 180e6, WHY);
 
         vm.prank(agent); // not the requester, not an adult
         vm.expectRevert(HobVault.NotAdult.selector);
@@ -769,7 +770,7 @@ contract HobTest is ReactiveSim {
     function test_agent_has_no_adult_powers() public {
         _standardHouse();
         vm.prank(bob);
-        uint256 req = home.spend(GROCERIES, shop, 180e6);
+        uint256 req = home.spend(GROCERIES, shop, 180e6, WHY);
 
         vm.startPrank(agent);
         vm.expectRevert(HobVault.NotAdult.selector);
@@ -800,9 +801,9 @@ contract HobTest is ReactiveSim {
         _ratify(LEISURE, 10_000e6, 2000e6, 2000e6);
         // 2,200 in an hour across chains: above the adult velocity limit of 2,000
         vm.prank(alice);
-        home.spend(LEISURE, shop, 1100e6);
+        home.spend(LEISURE, shop, 1100e6, WHY);
         vm.prank(alice);
-        mirror.spend(LEISURE, shop, 1100e6);
+        mirror.spend(LEISURE, shop, 1100e6, WHY);
         _relay();
         uint64 until = _frozenUntil(home, alice);
         assertGt(until, block.timestamp, "alice frozen by velocity");
@@ -819,7 +820,7 @@ contract HobTest is ReactiveSim {
         home.approveProposal(pid);
 
         vm.prank(bob);
-        uint256 req = home.spend(GROCERIES, shop, 180e6);
+        uint256 req = home.spend(GROCERIES, shop, 180e6, WHY);
         vm.prank(alice);
         vm.expectRevert(frozen);
         home.approveSpend(req);
@@ -838,7 +839,7 @@ contract HobTest is ReactiveSim {
     function test_cosign_rechecks_requester_freeze() public {
         _standardHouse();
         vm.prank(agent);
-        uint256 req = home.spend(GROCERIES, shop, 160e6); // above 150: needs a second adult
+        uint256 req = home.spend(GROCERIES, shop, 160e6, WHY); // above 150: needs a second adult
         _freezeAgentByBurst();
         uint64 until = _frozenUntil(home, agent);
         vm.prank(alice);
@@ -850,15 +851,15 @@ contract HobTest is ReactiveSim {
     function test_cosign_after_cap_is_refused() public {
         _standardHouse();
         vm.prank(bob);
-        uint256 req = home.spend(GROCERIES, shop, 180e6);
+        uint256 req = home.spend(GROCERIES, shop, 180e6, WHY);
         _ratify(GROCERIES, 1000e6, 200e6, 200e6);
         for (uint256 i; i < 3; ++i) {
             vm.prank(alice);
-            home.spend(GROCERIES, shop, 200e6);
+            home.spend(GROCERIES, shop, 200e6, WHY);
         }
         for (uint256 i; i < 2; ++i) {
             vm.prank(bob);
-            mirror.spend(GROCERIES, shop, 200e6);
+            mirror.spend(GROCERIES, shop, 200e6, WHY);
         }
         _relay();
         vm.prank(alice);
@@ -871,9 +872,9 @@ contract HobTest is ReactiveSim {
         _standardHouse();
         vm.startPrank(alice);
         vm.expectRevert(HobVault.InvalidAmount.selector);
-        home.spend(GROCERIES, shop, 0);
+        home.spend(GROCERIES, shop, 0, WHY);
         vm.expectRevert(HobVault.InvalidAmount.selector);
-        home.spend(GROCERIES, address(0), 10e6);
+        home.spend(GROCERIES, address(0), 10e6, WHY);
         vm.expectRevert(HobVault.BadCategory.selector);
         home.proposeRule(16, GROCERY_RULE);
         vm.expectRevert(HobVault.BadProposal.selector);
@@ -889,7 +890,7 @@ contract HobTest is ReactiveSim {
         _standardHouse();
         for (uint256 i; i < 6; ++i) {
             vm.prank(i % 2 == 0 ? alice : bob);
-            (i % 2 == 0 ? home : mirror).spend(GROCERIES, shop, 140e6);
+            (i % 2 == 0 ? home : mirror).spend(GROCERIES, shop, 140e6, WHY);
         }
         _relay();
         assertEq(uint8(_mode(home, GROCERIES)), uint8(HobTypes.Mode.TIGHT));
@@ -941,5 +942,56 @@ contract HobTest is ReactiveSim {
         vm.prank(alice);
         vm.expectRevert(HobReactive.OnlyOwner.selector);
         rsc.seal();
+    }
+
+    // ------------------------------------------------------------------ accountability
+
+    /// Rule: the agent must say why. A spend with no reason is refused before anything moves.
+    function test_agent_must_give_a_reason() public {
+        _standardHouse();
+        vm.prank(agent);
+        vm.expectRevert(HobVault.ReasonRequired.selector);
+        home.spend(GROCERIES, shop, 10e6, "");
+        assertEq(usdcBase.balanceOf(shop), 0);
+    }
+
+    /// Rule: adults may spend without a note; they answer to each other, not to a log.
+    function test_adult_may_spend_without_reason() public {
+        _standardHouse();
+        vm.prank(alice);
+        home.spend(GROCERIES, shop, 10e6, "");
+        assertEq(usdcBase.balanceOf(shop), 10e6);
+    }
+
+    /// Rule: a reason is one sentence, not a payload.
+    function test_reason_is_bounded() public {
+        _standardHouse();
+        bytes memory long = new bytes(161);
+        for (uint256 i; i < long.length; ++i) long[i] = "a";
+        vm.prank(agent);
+        vm.expectRevert(abi.encodeWithSelector(HobVault.ReasonTooLong.selector, 161, 160));
+        home.spend(GROCERIES, shop, 10e6, string(long));
+    }
+
+    /// Audit trail: the agent's words are on-chain next to the spend they explain.
+    function test_reason_is_emitted_with_the_spend() public {
+        _standardHouse();
+        vm.expectEmit(true, true, true, true, address(home));
+        emit HobVault.SpendReason(type(uint256).max, agent, GROCERIES, "milk and eggs for the week");
+        vm.prank(agent);
+        home.spend(GROCERIES, shop, 10e6, "milk and eggs for the week");
+    }
+
+    /// Audit trail: a held request carries its reason under the request id the adult co-signs.
+    function test_reason_is_linked_to_cosign_request() public {
+        _standardHouse();
+        vm.expectEmit(true, true, true, true, address(home));
+        emit HobVault.SpendReason(0, agent, GROCERIES, "birthday cake for Sam");
+        vm.prank(agent);
+        uint256 req = home.spend(GROCERIES, shop, 160e6, "birthday cake for Sam");
+        assertEq(req, 0);
+        vm.prank(bob);
+        home.approveSpend(req);
+        assertEq(usdcBase.balanceOf(shop), 160e6);
     }
 }

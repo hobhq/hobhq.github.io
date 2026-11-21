@@ -26,6 +26,7 @@ mutants=(
   "src/HobVault.sol|if (mode == HobTypes.Mode.FROZEN) revert CategoryFrozen(ps.category);|// re-check removed|old co-sign request executes after the cap"
   "src/HobReactive.sol|if (isSealed) revert IsSealed();|// seal ignored|deployer keeps admin powers after seal"
   "src/HobVault.sol|            revert LastAdult();|            {}|last adult can be removed"
+  "src/HobVault.sol|if (len == 0 && m.role == HobTypes.Role.AGENT) revert ReasonRequired();|// reason check removed|the agent spends without saying why"
 )
 
 echo "baseline:"; forge test >/dev/null 2>&1 && echo "  PASS (real contracts)" || { echo "  baseline FAILS — fix before mutating"; exit 1; }

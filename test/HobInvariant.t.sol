@@ -12,6 +12,7 @@ import {IERC20Min} from "../src/interfaces/IERC20Min.sol";
 
 /// @notice Drives random household activity across two chains and the reactive layer.
 contract HobHandler is ReactiveSim {
+    string constant WHY = "invariant run";
     uint256 constant BASE = 84532;
     uint256 constant UNI = 1301;
     uint64 constant PERIOD = 30 days;
@@ -102,7 +103,7 @@ contract HobHandler is ReactiveSim {
         amount = bound(amount, 1e6, perTx);
 
         vm.prank(who);
-        try v.spend(cat, address(0xCAFE), uint128(amount)) returns (uint256 id) {
+        try v.spend(cat, address(0xCAFE), uint128(amount), WHY) returns (uint256 id) {
             if (id == type(uint256).max) {
                 spendsOk++;
                 inFlight += amount;

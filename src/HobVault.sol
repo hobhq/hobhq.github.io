@@ -77,6 +77,7 @@ contract HobVault is AbstractCallback {
     uint64 public constant PENDING_TTL = 1 days;
     uint64 public constant PROPOSAL_TTL = 7 days;
     uint8 public constant MAX_CATEGORIES = 16;
+    uint256 public constant MAX_REASON = 160; // bytes; enough for one honest sentence
 
     IERC20Min public immutable token;
     bool public immutable isHome;
@@ -133,6 +134,9 @@ contract HobVault is AbstractCallback {
     event MemberSet(address indexed member, HobTypes.Role role, bool unfreeze, uint64 nonce);
 
     // Informational events
+    /// @dev The member's own words for a spend, on-chain next to the money it moved.
+    ///      `requestId` is the pending id for a co-sign request, `type(uint256).max` otherwise.
+    event SpendReason(uint256 indexed requestId, address indexed member, uint8 indexed category, string reason);
     event SpendRequested(uint256 indexed id, address indexed member, uint8 indexed category, uint256 amount, address to);
     event SpendApproved(uint256 indexed id, address indexed approver);
     event SpendCancelled(uint256 indexed id, address indexed by);
@@ -167,6 +171,8 @@ contract HobVault is AbstractCallback {
     error BadCategory();
     error BadRule();
     error LastAdult();
+    error ReasonRequired();
+    error ReasonTooLong(uint256 length, uint256 max);
 
     // ------------------------------------------------------------------
     // Constructor
@@ -257,11 +263,16 @@ contract HobVault is AbstractCallback {
 
     /// @notice Spend from the household vault. Returns `type(uint256).max` when the spend
     ///         executed immediately, or the pending id when it needs an adult co-sign.
-    function spend(uint8 category, address to, uint128 amount) external returns (uint256) {
+    /// @param reason Why, in the member's own words. An agent must always give one; it is
+    ///        emitted as `SpendReason` so anyone can audit what the agent said it was doing.
+    function spend(uint8 category, address to, uint128 amount, string calldata reason) external returns (uint256) {
         Member storage m = members[msg.sender];
         if (m.role == HobTypes.Role.NONE) revert NotMember();
         if (block.timestamp < m.frozenUntil) revert MemberIsFrozen(m.frozenUntil);
         if (amount == 0 || to == address(0)) revert InvalidAmount();
+        uint256 len = bytes(reason).length;
+        if (len > MAX_REASON) revert ReasonTooLong(len, MAX_REASON);
+        if (len == 0 && m.role == HobTypes.Role.AGENT) revert ReasonRequired();
 
         HobTypes.Rule memory r = rules[category];
         if (!r.active) revert CategoryInactive(category);
@@ -285,10 +296,12 @@ contract HobVault is AbstractCallback {
                     closed: false
                 })
             );
+            if (len != 0) emit SpendReason(id, msg.sender, category, reason);
             emit SpendRequested(id, msg.sender, category, amount, to);
             return id;
         }
 
+        if (len != 0) emit SpendReason(type(uint256).max, msg.sender, category, reason);
         _execute(msg.sender, category, to, amount);
         return type(uint256).max;
     }

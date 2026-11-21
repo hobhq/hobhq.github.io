@@ -74,6 +74,7 @@ async function tx(chainKey, who, functionName, args) {
   }
   const r = await c.p.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`${who} ${functionName} reverted on ${c.name}`);
+  if (STORY && functionName === "spend" && args[3]) console.log(DIM(`    ${who === "agent" ? "Pip" : who === "alice" ? "Alice" : "Bob"} on ${c.name}: "${args[3]}"`));
   return { hash, block: r.blockNumber, chain: chainKey };
 }
 
@@ -198,8 +199,8 @@ async function runStory(runNo) {
   await loop(
     "Alice on Base + Bob on Unichain → one household ledger",
     async () => {
-      await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 40_000000n]);
-      return tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 30_000000n]);
+      await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 40_000000n, "Farmers market: vegetables and fruit"]);
+      return tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 30_000000n, "Bakery: bread for the week"]);
     },
     "LedgerUpdated",
     []
@@ -213,9 +214,9 @@ async function runStory(runNo) {
   await loop(
     "Pip bursts 3 buys on Base + 4 on Unichain → frozen on both",
     async () => {
-      for (let i = 0; i < 3; i++) await tx("base", "agent", "spend", [CATEGORY.GROCERIES, shop, 20_000000n]);
+      for (let i = 0; i < 3; i++) await tx("base", "agent", "spend", [CATEGORY.GROCERIES, shop, 20_000000n, `Snack restock, order ${i + 1}`]);
       let last;
-      for (let i = 0; i < 4; i++) last = await tx("uni", "agent", "spend", [CATEGORY.GROCERIES, shop, 20_000000n]);
+      for (let i = 0; i < 4; i++) last = await tx("uni", "agent", "spend", [CATEGORY.GROCERIES, shop, 20_000000n, `Snack restock, order ${i + 4}`]);
       return last;
     },
     "VelocityBreach",
@@ -245,8 +246,8 @@ async function runStory(runNo) {
   await loop(
     "Household crosses 80% → TIGHT on both chains, remaining split per chain",
     async () => {
-      for (let i = 0; i < 4; i++) await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 140_000000n]);
-      return tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 140_000000n]);
+      for (let i = 0; i < 4; i++) await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 140_000000n, "Weekly supermarket shop"]);
+      return tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, 140_000000n, "Weekly supermarket shop"]);
     },
     "CategoryEscalated",
     [
@@ -267,8 +268,8 @@ async function runStory(runNo) {
   await loop(
     "Each chain spends its slice → household cap reached → FROZEN on both",
     async () => {
-      await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, await left("base")]);
-      return tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, await left("uni")]);
+      await tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, await left("base"), "Pantry bulk order"]);
+      return tx("uni", "bob", "spend", [CATEGORY.GROCERIES, shop, await left("uni"), "Pantry bulk order"]);
     },
     "CategoryEscalated",
     [
@@ -277,7 +278,7 @@ async function runStory(runNo) {
     ]
   );
 
-  await refused("One more purchase on Base after the cap", () => tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 10_000000n]), "CategoryFrozen");
+  await refused("One more purchase on Base after the cap", () => tx("base", "alice", "spend", [CATEGORY.GROCERIES, shop, 10_000000n, "One more grocery run"]), "CategoryFrozen");
 
   if (STORY) {
     const next = new Date((D.epoch + D.period * (Math.floor((Date.now() / 1000 - D.epoch) / D.period) + 1)) * 1000);
@@ -333,6 +334,7 @@ function check(label, ok, detail) {
 }
 const SCENARIOS = [
   ["cosign", "A purchase above the co-sign line needs a second adult", "Pip's 160 waits on Unichain until Bob co-signs; only then is it spent and counted by Hob"],
+  ["reason", "Pip must say why", "a buy with no reason is refused; a buy with one carries Pip's words on-chain, in the same transaction as the money"],
   ["rulechange", "The adults change a rule mid-period", "a new cap ratified on Base reaches Unichain by callback, no admin involved"],
   ["pause", "A paused category is closed on every chain", "rent paused on Base is refused on Unichain, then reopened the same way"],
   ["membership", "Removing a member works everywhere", "Pip voted out on Base is refused on Unichain, then voted back in"],
@@ -354,6 +356,7 @@ async function waitPipWindows() {
     await waitUntilTs(until);
   }
 }
+const PANTRY = ["Pasta and rice", "Olive oil", "Tomatoes", "Cereal", "Yogurt", "Bananas"];
 async function runScenarios() {
   const agent = D.members.agent;
   const shop = "0x000000000000000000000000000000000000c0DE";
@@ -387,11 +390,20 @@ async function runScenarios() {
 
   head("cosign");
   const id = await viewVault("uni", "pendingCount");
-  await tx("uni", "agent", "spend", [G, shop, 160_000000n]);
+  await tx("uni", "agent", "spend", [G, shop, 160_000000n, "Birthday cake and party food for Sam"]);
   const req = await viewVault("uni", "pending", [id]);
   check("Pip's 160 on Unichain is held for a co-sign", req[0].toLowerCase() === agent.toLowerCase() && !req[5], `request #${id}`);
   await refused("Pip co-signs its own request", () => tx("uni", "agent", "approveSpend", [id]), "NotAdult|SelfApproval|OnlyAdult");
   await loop("Bob co-signs on Unichain → spent → counted in the household ledger", () => tx("uni", "bob", "approveSpend", [id]), "LedgerUpdated", []);
+
+  head("reason");
+  await refused("Pip buys on Unichain without saying why", () => tx("uni", "agent", "spend", [G, shop, 12_000000n, ""]), "ReasonRequired");
+  const WHY = "Oat milk and eggs: the fridge is empty";
+  const said = await loop("Pip buys on Base and says why → counted by Hob", () => tx("base", "agent", "spend", [G, shop, 12_000000n, WHY]), "LedgerUpdated", []);
+  const rc = await chains.base.p.getTransactionReceipt({ hash: said.origin.hash });
+  const words = pick(rc.logs, V.abi, "SpendReason", (a) => a.member.toLowerCase() === agent.toLowerCase());
+  const spentToo = pick(rc.logs, V.abi, "Spent", (a) => a.member.toLowerCase() === agent.toLowerCase());
+  check("Pip's reason is on-chain in the same transaction as the spend", words?.args.reason === WHY && !!spentToo, `"${words?.args.reason ?? "missing"}"`);
 
   head("rulechange");
   await loop("Adults raise the groceries cap to 1,200 on Base → applied on Unichain", () => ratifyRule(G, { ...groceries, monthlyCap: 1200_000000n }), "RulesMirrored", [{ chain: "uni", event: "RulesApplied", match: (a) => a.category === G }]);
@@ -401,7 +413,7 @@ async function runScenarios() {
 
   head("pause");
   await loop("Adults pause rent on Base → paused on Unichain", () => ratifyRule(RENT, { ...rent, active: false }), "RulesMirrored", [{ chain: "uni", event: "RulesApplied", match: (a) => a.category === RENT }]);
-  await refused("Bob pays rent on Unichain while it is paused", () => tx("uni", "bob", "spend", [RENT, shop, 100_000000n]), "CategoryInactive");
+  await refused("Bob pays rent on Unichain while it is paused", () => tx("uni", "bob", "spend", [RENT, shop, 100_000000n, "Rent, first half"]), "CategoryInactive");
   await loop("Adults reopen rent on Base → reopened on Unichain", () => ratifyRule(RENT, rent), "RulesMirrored", [{ chain: "uni", event: "RulesApplied", match: (a) => a.category === RENT }]);
 
   head("membership");
@@ -410,7 +422,7 @@ async function runScenarios() {
     await tx("base", "alice", "proposeMember", [agent, 0]);
     return tx("base", "bob", "approveProposal", [pid]);
   }, "MemberMirrored", [{ chain: "uni", event: "MemberSynced", match: (a) => a.member.toLowerCase() === agent.toLowerCase() && Number(a.role) === 0 }]);
-  await refused("Pip buys on Unichain after being voted out", () => tx("uni", "agent", "spend", [G, shop, 10_000000n]), "NotMember");
+  await refused("Pip buys on Unichain after being voted out", () => tx("uni", "agent", "spend", [G, shop, 10_000000n, "Detergent refill"]), "NotMember");
   await loop("Adults vote Pip back in → known again on Unichain", async () => {
     const pid = await proposalId("base");
     await tx("base", "alice", "proposeMember", [agent, 2]);
@@ -420,25 +432,25 @@ async function runScenarios() {
   head("threshold");
   const rxStart = await rx.p.getBlockNumber();
   for (const [i, k] of ["base", "uni", "base", "uni", "base", "uni"].entries()) {
-    await loop(`Pip buy ${i + 1}/6 on ${chains[k].name} (limit: 6 an hour, all chains)`, () => tx(k, "agent", "spend", [G, shop, 10_000000n]), "LedgerUpdated", []);
+    await loop(`Pip buy ${i + 1}/6 on ${chains[k].name} (limit: 6 an hour, all chains)`, () => tx(k, "agent", "spend", [G, shop, 10_000000n, PANTRY[i]]), "LedgerUpdated", []);
   }
   const early = await findEvent(rx.p, rx.contract, R.abi, "VelocityBreach", rxStart + 1n);
   check("6 buys across chains: no freeze", !early, "no VelocityBreach on Reactive");
-  await loop("Pip buy 7 on Base → over the limit → frozen on both chains", () => tx("base", "agent", "spend", [G, shop, 10_000000n]), "VelocityBreach", [
+  await loop("Pip buy 7 on Base → over the limit → frozen on both chains", () => tx("base", "agent", "spend", [G, shop, 10_000000n, "Coffee beans"]), "VelocityBreach", [
     { chain: "base", event: "MemberFrozen", match: (a) => a.member.toLowerCase() === agent.toLowerCase() },
     { chain: "uni", event: "MemberFrozen", match: (a) => a.member.toLowerCase() === agent.toLowerCase() },
   ]);
-  await refused("Frozen Pip buys on Unichain", () => tx("uni", "agent", "spend", [G, shop, 10_000000n]), "MemberIsFrozen");
+  await refused("Frozen Pip buys on Unichain", () => tx("uni", "agent", "spend", [G, shop, 10_000000n, "Coffee beans, second try"]), "MemberIsFrozen");
   await loop("Alice lifts the freeze on Base → lifted on Unichain", () => tx("base", "alice", "unfreezeMember", [agent]), "MemberMirrored", [
     { chain: "uni", event: "MemberSynced", match: (a) => a.member.toLowerCase() === agent.toLowerCase() && a.unfreeze },
   ]);
 
   head("wholecap");
-  await loop("Alice pays the whole rent (2,000) on Base → rent FROZEN on both chains", () => tx("base", "alice", "spend", [RENT, shop, 2000_000000n]), "CategoryEscalated", [
+  await loop("Alice pays the whole rent (2,000) on Base → rent FROZEN on both chains", () => tx("base", "alice", "spend", [RENT, shop, 2000_000000n, "November rent"]), "CategoryEscalated", [
     { chain: "base", event: "CategoryModeChanged", match: (a) => a.category === RENT && a.mode === 2 },
     { chain: "uni", event: "CategoryModeChanged", match: (a) => a.category === RENT && a.mode === 2 },
   ]);
-  await refused("Bob pays rent on Unichain after the cap", () => tx("uni", "bob", "spend", [RENT, shop, 10_000000n]), "CategoryFrozen");
+  await refused("Bob pays rent on Unichain after the cap", () => tx("uni", "bob", "spend", [RENT, shop, 10_000000n, "Late fee"]), "CategoryFrozen");
   const g = await viewVault("uni", "categoryStatus", [G]);
   check("Groceries stay open on Unichain", Number(g[0]) !== 2, `groceries ${MODE[g[0]]}`);
   scenario = null;
