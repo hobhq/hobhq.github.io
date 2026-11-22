@@ -496,7 +496,7 @@ function hobSays(l) {
   if (h?.name === "CategoryEscalated") return `Careful: ${CATS[h.a.category]?.name} is at ${usd(h.a.householdSpent)} of ${usd(h.a.cap)}. I split what's left between Base and Unichain.`;
   if (h?.name === "RulesMirrored") return `Alice and Bob agreed on a new ${CATS[h.a.category]?.name?.toLowerCase()} rule. I copied it to Unichain.`;
   if (h?.name === "MemberMirrored") {
-    if (h.a.unfreeze) return `An adult lifted ${nameOf(h.a.member)}'s freeze. Done on every chain.`;
+    if (h.a.unfreeze) return `${nameOf(h.a.member)} can buy again. An adult lifted the freeze, and I carried it to Base and Unichain.`;
     if (Number(h.a.role) === 0) return `${nameOf(h.a.member)} left the house. Every chain knows.`;
     return `${nameOf(h.a.member)} is in the house as ${Number(h.a.role) === 1 ? "an adult" : "an AI shopper"}. Unichain knows too.`;
   }
