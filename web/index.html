@@ -50,6 +50,19 @@
         <g class="eyes"><path d="M37 70h16v6H37Z" /><path d="M67 70h16v6H67Z" /></g>
         <path class="mouth" d="M48 92h24" />
       </symbol>
+      <linearGradient id="pip-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c0b04" /><stop offset="1" stop-color="#050507" /></linearGradient>
+      <!-- Pip, the AI shopper: amber, smaller than Hob. Frozen: eyes go dark, Hob's red hold and a lock appear -->
+      <symbol id="pip" viewBox="0 0 120 120">
+        <path d="M60 22V11" fill="none" stroke-width="3" style="stroke: var(--pip-line, #ff7a1a)" />
+        <path d="M60 2 65 7 60 12 55 7Z" style="fill: var(--pip-eye, #ffb020)" />
+        <path d="M32 24h56l14 14v40l-14 14H32L18 78V38Z" fill="url(#pip-body)" stroke-width="3" style="stroke: var(--pip-line, #ff7a1a)" />
+        <path d="M11 48h7v20h-7ZM102 48h7v20h-7Z" style="fill: var(--pip-line, #ff7a1a)" opacity=".85" />
+        <path d="M28 46h64v24H28Z" fill="#0d0603" stroke-width="1.5" style="stroke: var(--pip-line, #ff7a1a)" stroke-opacity=".7" />
+        <g style="fill: var(--pip-eye, #ffb020)"><path d="M38 58 45 51 52 58 45 65Z" /><path d="M68 58 75 51 82 58 75 65Z" /></g>
+        <path d="M48 81h24" fill="none" stroke-width="3" stroke-dasharray="4 4" style="stroke: var(--pip-line, #ff7a1a)" />
+        <path d="M26 15h68l18 18v50l-18 18H26L8 83V33Z" fill="none" stroke="#ff1e42" stroke-width="2.5" stroke-dasharray="7 5" style="opacity: var(--pip-hold, 0)" />
+        <g style="opacity: var(--pip-lock, 0)"><path d="M86 90v-7a8 8 0 0 1 16 0v7" fill="none" stroke="#ff1e42" stroke-width="3.5" /><path d="M81 90h26v20H81Z" fill="#ff1e42" /><path d="M94 96v7" stroke="#050507" stroke-width="3.5" /></g>
+      </symbol>
     </defs>
   </svg>
 
@@ -66,6 +79,7 @@
       <button role="tab" data-tab="home" aria-selected="true">Dashboard</button>
       <button role="tab" data-tab="dash" aria-selected="false">The House</button>
       <button role="tab" data-tab="story" aria-selected="false">The Story</button>
+      <button role="tab" data-tab="flow" aria-selected="false">How it works</button>
       <button role="tab" data-tab="hood" aria-selected="false">For Judges</button>
     </nav>
     <div class="tb-ticker" aria-hidden="true"><span class="dot on"></span><b>Hob is on duty</b><span>Reading Base, Unichain and Reactive Lasna</span></div>
@@ -84,6 +98,7 @@
         <button data-tab="home" aria-selected="true"><i data-i="grid"></i>Dashboard</button>
         <button data-tab="dash" aria-selected="false"><i data-i="house"></i>The House</button>
         <button data-tab="story" aria-selected="false"><i data-i="story"></i>The Story</button>
+        <button data-tab="flow" aria-selected="false"><i data-i="flow"></i>How it works</button>
         <button data-tab="hood" aria-selected="false"><i data-i="judge"></i>For Judges</button>
       </nav>
     </div>
@@ -125,7 +140,7 @@
       </section>
 
       <section class="duty" aria-label="Who does what">
-        <div class="duty-c"><span class="duty-k">// Stage_01 // Agent</span><i data-i="pip" class="duty-i"></i><div><h3>Pip reasons</h3><p>The AI shopper decides what to buy and writes <b>why</b>, on-chain, in the same transaction as the money. No reason, no purchase.</p><span class="duty-f"><span>Param: SpendReason</span><b>Payload required</b></span></div></div>
+        <div class="duty-c"><span class="duty-k">// Stage_01 // Agent</span><svg viewBox="0 0 120 120" class="pipfig duty-i duty-pip" aria-hidden="true"><use href="#pip" /></svg><div><h3>Pip reasons</h3><p>The AI shopper decides what to buy and writes <b>why</b>, on-chain, in the same transaction as the money. No reason, no purchase.</p><span class="duty-f"><span>Param: SpendReason</span><b>Payload required</b></span></div></div>
         <div class="duty-c"><span class="duty-k">// Stage_02 // Local vault</span><i data-i="enforce" class="duty-i"></i><div><h3>Code enforces</h3><p>Each vault checks the rules the adults ratified: max per purchase, co-sign above a line, a pace per hour. Pip can't approve, co-sign or unfreeze.</p><span class="duty-f"><span>Checked: every spend</span><b>Max · co-sign · pace</b></span></div></div>
         <div class="duty-c"><span class="duty-k">// Stage_03 // Reaction</span><i data-i="react" class="duty-i"></i><div><h3>Hob reacts</h3><p>On Reactive, Hob remembers the whole house across chains and reacts: tighten, freeze, copy a decision, start a new <span class="pw">month</span>. Nobody has to be awake.</p><span class="duty-f"><span>Orchestrator: Lasna</span><b>Cross-chain</b></span></div></div>
       </section>
@@ -163,7 +178,7 @@
 
       <section class="glass-card section" id="receipts-card">
         <div class="sec-head">
-          <div><span class="eyebrow">Audit trail · every line is on-chain</span><h2>Pip's receipts</h2></div>
+          <div class="rc-id"><svg viewBox="0 0 120 120" class="pipfig rc-pip" aria-hidden="true"><use href="#pip" /></svg><div><span class="eyebrow">Audit trail · every line is on-chain</span><h2>Pip's receipts</h2></div></div>
           <span class="meta" id="receipts-meta"></span>
         </div>
         <p class="muted small sec-lede">You don't have to trust what the agent says it did. Each purchase below shows Pip's own words (<code>SpendReason</code>), what the vault allowed, and how Hob reacted, with the transaction to check it.</p>
@@ -246,6 +261,18 @@
       </div>
     </div>
 
+    <!-- ============================================================ How it works -->
+    <div class="tab" id="tab-flow" hidden>
+      <section class="glass-card section flow-card">
+        <div class="sec-head">
+          <div><span class="eyebrow">Every entity · every interaction · lit by real transactions</span><h2>How it works</h2></div>
+          <span class="meta">3 people · 2 vaults · 1 reactive contract</span>
+        </div>
+        <p class="muted small sec-lede">Pip reasons, the vaults enforce, Hob reacts. Click an entity to see what it can and cannot do, or replay a loop. When a real purchase lands on testnet, its path lights up here.</p>
+        <div id="flow-root"></div>
+      </section>
+    </div>
+
     <!-- ============================================================ For Judges -->
     <div class="tab" id="tab-hood" hidden>
       <div class="grid">
@@ -253,7 +280,7 @@
           <div class="sec-head"><div><span class="eyebrow">On-chain reactivity, in one household</span><h2>Seven questions, answered with transactions</h2></div></div>
           <ol class="qa">
             <li><h3>Can a contract react without a bot or keeper?</h3><p>Yes. The <span class="pw">month</span> resets with no transaction from anyone: the period id travels inside every spend event, and Hob keeps one ledger per period.</p><span class="qa-proof"><a href="#recorded-sec">Rollovers, below</a></span></li>
-            <li><h3>Observe, remember, evaluate, react?</h3><p>Hob subscribes to 3 events on 2 chains, keeps a ledger per period and category, compares it with the rules, and calls back every chain only when something must change.</p><span class="qa-proof"><a href="#loops" data-tab="dash">Every loop, with its transactions</a></span></li>
+            <li><h3>Observe, remember, evaluate, react?</h3><p>Hob subscribes to 3 events on 2 chains, keeps a ledger per period and category, compares it with the rules, and calls back every chain only when something must change.</p><span class="qa-proof"><a href="#loops" data-tab="dash">Every loop, with its transactions</a> · <a href="#flow" data-tab="flow">The map</a></span></li>
             <li><h3>One shared view across chains?</h3><p>Alice spends on Base, Bob on Unichain. Neither vault can see the other. Hob sums both into one house budget and splits what is left per chain at the tighten line.</p><span class="qa-proof"><a href="#ledger" data-tab="home">The house ledger</a></span></li>
             <li><h3>Stateful, not stateless?</h3><p>Pip's pace is counted across chains and over time: 6 buys an hour pass, the 7th freezes Pip everywhere. That needs memory of what already happened.</p><span class="qa-proof"><a href="#recorded-sec">Scenario: the pace limit is exact</a></span></li>
             <li><h3>Who enforces an AI's rules when nobody is watching?</h3><p>The adults ratify the rules, the vaults enforce them on every purchase, and Hob enforces what no single chain can see. Pip can propose, never approve, co-sign or unfreeze.</p><span class="qa-proof"><a href="#recorded-sec">Refusals proven on-chain</a></span></li>
@@ -340,6 +367,7 @@ node ops/prove.mjs testnet   # → docs/EVIDENCE.md</pre>
 
   <script type="module" src="fx.js"></script>
   <script type="module" src="transitions.js"></script>
+  <script type="module" src="flow.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -2,6 +2,7 @@
 //   Dashboard  → command grid: three pylons (Base, Hob, Unichain) rise and link up
 //   The House  → blueprint: Hob's house draws itself edge by edge, then we fly into the visor
 //   The Story  → chapter tunnel: eight chapter frames, the camera dives through them
+//   How it works → the map: six entities appear, their links draw in, packets of light run the loop
 //   For Judges → verification: a laser scans a geodesic core, then a check mark burns in
 // Three.js (vendor/three.module.min.js, r170) is loaded on the first tab change only.
 
@@ -10,7 +11,8 @@ const META = {
   home: { n: "01", t: "Dashboard", s: "Live telemetry · Base ⟷ Hob ⟷ Unichain" },
   dash: { n: "02", t: "The House", s: "Rules · members · co-sign queue" },
   story: { n: "03", t: "The Story", s: "Eight chapters, every one on-chain" },
-  hood: { n: "04", t: "For Judges", s: "Evidence · verified contracts · scenarios" },
+  flow: { n: "04", t: "How it works", s: "Every entity · every interaction" },
+  hood: { n: "05", t: "For Judges", s: "Evidence · verified contracts · scenarios" },
 };
 const DUR = 1050; // scene time, ms
 const OUT = 280; // dissolve, ms
@@ -305,7 +307,77 @@ function buildHood() {
   };
 }
 
-const BUILD = { home: buildHome, dash: buildDash, story: buildStory, hood: buildHood };
+// ---------------------------------------------------------------- How it works: the map assembles
+function buildFlow() {
+  const { scene, camera } = base(48);
+  const P = { alice: [-7, 3.2, 0], bob: [-7, 0, 0], pip: [-7, -3.2, 0], base: [0, 2.6, 0], uni: [0, -2.6, 0], hob: [7, 0, 0] };
+  const nodes = {};
+  for (const [k, p] of Object.entries(P)) {
+    const r = k === "hob" ? 1.25 : 0.7;
+    const color = k === "pip" ? 0xff7a1a : k === "hob" ? RED : k === "base" || k === "uni" ? EMBER : ICE;
+    const g = new T.Group();
+    g.add(new T.LineSegments(new T.EdgesGeometry(new T.OctahedronGeometry(r, 0)), lm(color)));
+    g.add(new T.Mesh(new T.OctahedronGeometry(r * 0.55, 0), mm(color, 0.35)));
+    g.add(loop(circle(r * 1.5, 48).map(([x, , z]) => [x, z, 0]), lm(color, 0.5)));
+    g.position.set(...p);
+    scene.add(g);
+    nodes[k] = g;
+  }
+  const pairs = [["alice", "base"], ["bob", "base"], ["pip", "base"], ["alice", "uni"], ["bob", "uni"], ["pip", "uni"], ["base", "hob"], ["uni", "hob"]];
+  const curves = pairs.map(([a, b]) => {
+    const A = new T.Vector3(...P[a]), B = new T.Vector3(...P[b]);
+    const m = A.clone().lerp(B, 0.5); m.z += 1.2;
+    return new T.QuadraticBezierCurve3(A, m, B);
+  });
+  const wires = curves.map((c, i) => {
+    const geo = new T.BufferGeometry().setFromPoints(c.getPoints(60));
+    geo.setDrawRange(0, 0);
+    const w = new T.Line(geo, lm(i >= 6 ? RED : DIM, i >= 6 ? 1 : 0.9));
+    scene.add(w);
+    return w;
+  });
+  // callbacks: Hob back to both vaults, arcing the other way
+  const back = [["hob", "base"], ["hob", "uni"]].map(([a, b]) => {
+    const A = new T.Vector3(...P[a]), B = new T.Vector3(...P[b]);
+    const m = A.clone().lerp(B, 0.5); m.z -= 1.6; m.y += a === "hob" && b === "base" ? 0.8 : -0.8;
+    const c = new T.QuadraticBezierCurve3(A, m, B);
+    const geo = new T.BufferGeometry().setFromPoints(c.getPoints(60));
+    geo.setDrawRange(0, 0);
+    const w = new T.Line(geo, lm(EMBER));
+    scene.add(w);
+    return { c, w };
+  });
+  const packet = (color) => { const m = new T.Mesh(new T.SphereGeometry(0.16, 12, 12), mm(color, 1)); scene.add(m); return m; };
+  const pk = [packet(0xffb020), packet(RED), packet(EMBER), packet(EMBER)];
+  scene.add(dust(200, 46));
+  camera.position.set(0, -3, 19);
+  camera.lookAt(0, 0, 0);
+  return {
+    scene, camera,
+    update(t) {
+      let i = 0;
+      for (const g of Object.values(nodes)) {
+        const k = out(seg(t, 0.02 + i * 0.05, 0.3 + i * 0.05));
+        g.scale.setScalar(Math.max(0.001, k));
+        g.rotation.y = t * 3 + i;
+        i++;
+      }
+      wires.forEach((w, j) => w.geometry.setDrawRange(0, Math.floor(61 * ease(seg(t, 0.25 + j * 0.03, 0.55 + j * 0.03)))));
+      back.forEach(({ w }, j) => w.geometry.setDrawRange(0, Math.floor(61 * ease(seg(t, 0.62 + j * 0.04, 0.85)))));
+      // one loop: Pip spends on Unichain → Hob → callbacks to both vaults
+      const a = seg(t, 0.45, 0.62), b = seg(t, 0.6, 0.74), c = seg(t, 0.74, 0.95);
+      pk[0].visible = a > 0 && a < 1; pk[0].position.copy(curves[5].getPoint(ease(a)));
+      pk[1].visible = b > 0 && b < 1; pk[1].position.copy(curves[7].getPoint(ease(b)));
+      pk[2].visible = pk[3].visible = c > 0 && c < 1;
+      pk[2].position.copy(back[0].c.getPoint(ease(c))); pk[3].position.copy(back[1].c.getPoint(ease(c)));
+      nodes.hob.scale.setScalar(Math.max(0.001, out(seg(t, 0.27, 0.55))) * (1 + 0.35 * Math.sin(Math.PI * seg(t, 0.72, 0.8))));
+      camera.position.set(Math.sin(t * 0.8) * 3, -3 + t * 2.5, 19 - ease(t) * 3.5);
+      camera.lookAt(0, 0, 0);
+    },
+  };
+}
+
+const BUILD = { home: buildHome, dash: buildDash, story: buildStory, flow: buildFlow, hood: buildHood };
 
 // ---------------------------------------------------------------- play
 function hud(tab) {

@@ -2,7 +2,7 @@
 
 > Hob is a household budget agreement enforced on every chain by Reactive Network. Two adults (Alice and Bob) ratify the rules, an AI shopper (Pip) buys and must say why on-chain, the vaults enforce each rule locally, and Hob, a reactive contract on Reactive Lasna, watches Base Sepolia and Unichain Sepolia and tightens budgets, freezes members, mirrors decisions and starts each new period by itself, with no keeper, bot or cron. Built for the Reactive Omni Buildathon (DoraHacks), track "Set It and Forget It". Tagline: "AI reasons. Code enforces. Hob reacts."
 
-The live dashboard reads the testnet contracts straight from public RPCs; it holds no keys and needs no backend. Its tabs are client-side views of one page: Dashboard (live loops: event on a chain → Hob on Reactive → callback), The House (rules, members, co-sign and proposal queues), Story (an 8-chapter guided demo) and For Judges (the track's seven questions answered with transaction links).
+The live dashboard reads the testnet contracts straight from public RPCs; it holds no keys and needs no backend. Its tabs are client-side views of one page: Dashboard (live loops: event on a chain → Hob on Reactive → callback), The House (rules, members, co-sign and proposal queues), Story (an 8-chapter guided demo), How it works (https://hobhq.github.io/#flow: every entity and every interaction on one map, lit by real transactions) and For Judges (the track's seven questions answered with transaction links).
 
 ## Links
 

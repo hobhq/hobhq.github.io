@@ -48,20 +48,33 @@ Hob turns that agreement into contracts:
 
 ## How it works
 
+```mermaid
+flowchart LR
+  subgraph People["The household"]
+    A["Alice · adult"]
+    B["Bob · adult"]
+    P["Pip · AI shopper"]
+  end
+  subgraph Base["Base Sepolia · home"]
+    VB["HobVault (home)"]
+  end
+  subgraph Uni["Unichain Sepolia · mirror"]
+    VU["HobVault (mirror)"]
+  end
+  subgraph Lasna["Reactive Network · Lasna"]
+    H["HobReactive · Hob"]
+  end
+  A & B -- "propose · approve · unfreeze" --> VB
+  P -. "propose only, never approve" .-> VB
+  A & B & P -- "spend + reason" --> VB
+  A & B & P -- "spend + reason" --> VU
+  VB -- "Spent · RulesRatified · MemberSet" --> H
+  VU -- "Spent" --> H
+  H -- "cbCategoryMode · cbFreezeMember" --> VB
+  H -- "cbCategoryMode · cbFreezeMember · cbApplyRules · cbSetMember" --> VU
 ```
-        Base (home)                      Reactive Network                     Unichain (mirror)
- ┌─────────────────────┐            ┌──────────────────────────┐         ┌─────────────────────┐
- │ HobVault         │  Spent     │ HobReactive           │  Spent  │ HobVault         │
- │  propose / ratify   │ ─────────► │  household ledger        │ ◄────── │  spend / co-sign    │
- │  spend / co-sign    │  Rules     │   (period × category)    │         │  rules: mirrored    │
- │                     │  Members   │  role + velocity / member│         │                     │
- │                     │ ─────────► │                          │         │                     │
- │ cbCategoryMode  ◄───┼────────────┤  callbacks to EVERY chain├─────────┼──► cbCategoryMode   │
- │ cbFreezeMember  ◄───┤            │                          │         ├──► cbFreezeMember   │
- │                     │            │                          │         ├──► cbApplyRules     │
- │                     │            │                          │         ├──► cbSetMember      │
- └─────────────────────┘            └──────────────────────────┘         └─────────────────────┘
-```
+
+The dashboard has the same map, live: [How it works](https://hobhq.github.io/#flow) lights up each path as real transactions land.
 
 | Layer | Where | Enforces |
 |---|---|---|

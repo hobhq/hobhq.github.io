@@ -251,9 +251,10 @@ async function indexerLogs(c, fromBlock, toBlock) {
   for (let from = fromBlock, guard = 0; from <= toBlock && guard < 50; guard++) {
     const u = `${base}/api?module=logs&action=getLogs&address=${c.address}&fromBlock=${from}&toBlock=${toBlock}`;
     let r = null;
-    for (let attempt = 0; attempt < 4 && !r; attempt++) {
+    for (let attempt = 0; attempt < 2 && !r; attempt++) {
       const res = await fetch(u);
-      if (res.status === 429 || res.status >= 500) { await sleep(800 * (attempt + 1)); continue; } // rate limited: back off
+      // rate limited or down: back off once, then fall back to the RPCs instead of making the visitor wait
+      if (res.status === 429 || res.status >= 500) { if (attempt === 0) await sleep(800); continue; }
       r = await res.json();
     }
     if (!r) throw new Error("indexer busy");
@@ -335,7 +336,11 @@ async function pollEvents() {
   EV.push(...fresh);
   EV.sort((x, y) => x.ts - y.ts || RANK[x.kind] - RANK[y.kind] || x.order - y.order);
   if (EV.length > 1500) EV.splice(0, EV.length - 1500);
-  if (primed && fresh.length) animate(fresh);
+  if (primed && fresh.length) {
+    animate(fresh);
+    const whoKey = (a) => Object.keys(WHO).find((k) => WHO[k].toLowerCase() === a?.toLowerCase());
+    document.dispatchEvent(new CustomEvent("hob:events", { detail: fresh.map((e) => ({ chain: e.c.key, name: e.name, kind: e.kind, who: whoKey(e.a.member), text: e.kind === "origin" && e.name === "Spent" ? `${nameOf(e.a.member)} spent ${money(e.a.amount)} on ${e.c.short}` : PULSE_LABEL[e.name] ? `${e.c.short}: ${PULSE_LABEL[e.name](e.a)}` : "" })) }));
+  }
   primed = true;
   return fresh.length;
 }
@@ -467,7 +472,6 @@ function fly(fromEl, toEl, label, tone) {
 }
 
 // ================================================================== render: dashboard (Obsidian Crimson)
-const PIP_SVG = `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" aria-hidden="true"><path d="M16 3v4"/><path class="a-beacon" d="M14.5 2.5h3"/><path d="M7 9h18l3 3v10l-3 3H7l-3-3V12Z"/><path d="M8.5 14.5h15v5h-15Z" opacity=".5"/><path class="a-scan" d="M11 17h3.5M17.5 17H21"/></svg>`;
 const HOB_MINI = `<svg viewBox="0 0 120 120" aria-hidden="true"><use href="#hob" /></svg>`;
 const money = (v) => `$${Number(formatUnits(v ?? 0n, 6)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const ms = (name, cls = "") => icon(name, cls);
@@ -689,7 +693,7 @@ function renderRoster() {
       ? `<span class="st">Frozen on ${[r.fBase ? "Base" : "", r.fUni ? "Unichain" : ""].filter(Boolean).join(" & ")}</span>${isPip ? `<button class="small" id="roster-unfreeze">${ms("lock_open", "sm")} Unfreeze</button>` : ""}`
       : `<span>Active on Base & Unichain</span><span class="st ok">Active</span>`;
     return `<div class="person ${away ? "away" : ""} ${frozen ? "frozen" : ""}">
-      <div class="p-head"><div class="p-id"><div class="avatar ${isPip ? "pip" : key}">${isPip ? PIP_SVG : key === "alice" ? "A" : "B"}</div><div><p class="p-name">${isPip ? "Pip" : key === "alice" ? "Alice" : "Bob"}</p><span class="p-role">${isPip ? "Autonomous shopper" : "Adult co-signer"}</span></div></div>${tag}</div>
+      <div class="p-head"><div class="p-id"><div class="avatar ${isPip ? "pip" : key}">${isPip ? `<svg viewBox="0 0 120 120" class="pipfig ${frozen ? "frozen" : ""}" aria-hidden="true"><use href="#pip" /></svg>` : key === "alice" ? "A" : "B"}</div><div><p class="p-name">${isPip ? "Pip" : key === "alice" ? "Alice" : "Bob"}</p><span class="p-role">${isPip ? "Autonomous shopper" : "Adult co-signer"}</span></div></div>${tag}</div>
       <div class="p-rows">${rows}</div>
       <div class="p-foot">${foot}</div></div>`;
   };
@@ -871,6 +875,42 @@ function renderLoops(loops) {
 }
 
 // ================================================================== render: under the hood
+// Live facts for the "How it works" map (flow.js), one short line per entity plus details.
+function flowState(loops) {
+  const g = S.budget[G], v = S.rules[G];
+  const mem = (k) => S.members.find((r) => r.m === WHO[k].toLowerCase());
+  const frozenTxt = (r) => (r && (r.fBase || r.fUni) ? `frozen on ${[r.fBase ? "Base" : "", r.fUni ? "Unichain" : ""].filter(Boolean).join(" & ")}` : "active");
+  const last = (k) => { const e = lastSpend((x) => x.a.member.toLowerCase() === WHO[k].toLowerCase()); return e ? `${money(e.a.amount)} on ${e.c.short} · ${ago(e.ts)}` : "none yet"; };
+  const spentOn = (c) => EV.filter((e) => e.name === "Spent" && e.c === c).length;
+  const cbOn = (c) => EV.filter((e) => e.kind === "callback" && e.c === c).length;
+  const pip = mem("agent");
+  const addr = (c, a) => (c.explorer ? { a, url: `${c.explorer}/address/${a}` } : null);
+  document.dispatchEvent(new CustomEvent("hob:state", { detail: {
+    pipFrozen: !!(pip && (pip.fBase || pip.fUni)),
+    line: {
+      alice: frozenTxt(mem("alice")), bob: frozenTxt(mem("bob")),
+      pip: `${frozenTxt(pip)} · pace ${S.agentPace.count}/${S.agentPace.maxTx}`,
+      base: `groceries ${MODE[g.base.mode]} · rules v${v.vHome}`,
+      uni: `groceries ${MODE[g.uni.mode]} · rules v${v.vMirror}`,
+      hob: `${loops.length} reactions · ${money(g.spent)} of ${money(g.cap)}`,
+    },
+    facts: {
+      alice: [["Status", frozenTxt(mem("alice"))], ["Last spend", last("alice")]],
+      bob: [["Status", frozenTxt(mem("bob"))], ["Last spend", last("bob")]],
+      pip: [["Status", frozenTxt(pip)], ["Pace this hour", `${S.agentPace.count} of ${S.agentPace.maxTx} buys, across chains`], ["Last spend", last("agent")], ["Reasons on-chain", String(REASON_TX.size)]],
+      base: [["Groceries", MODE[g.base.mode]], [`Spent here this ${PW}`, money(g.byBase)], ["Rules", `v${v.vHome}`], ["Purchases recorded", String(spentOn(C.base))], ["Callbacks from Hob", String(cbOn(C.base))]],
+      uni: [["Groceries", MODE[g.uni.mode]], [`Spent here this ${PW}`, money(g.byUni)], ["Rules", `v${v.vMirror}${v.vMirror >= v.vHome ? " · in sync" : " · syncing"}`], ["Purchases recorded", String(spentOn(C.uni))], ["Callbacks from Hob", String(cbOn(C.uni))]],
+      hob: [["Reactions", String(loops.length)], [`House groceries this ${PW}`, `${money(g.spent)} of ${money(g.cap)}`], [`New ${PW} in`, untilReset()], ["Pip's pace", `${S.agentPace.count} of ${S.agentPace.maxTx}`]],
+    },
+    addr: {
+      alice: addr(C.base, WHO.alice), bob: addr(C.base, WHO.bob), pip: addr(C.base, WHO.agent),
+      base: addr(C.base, C.base.address), uni: addr(C.uni, C.uni.address), hob: addr(C.reactive, C.reactive.address),
+    },
+  } }));
+  // Pip's figure elsewhere on the page follows the same state
+  for (const f of document.querySelectorAll(".duty-pip, .rc-pip")) f.classList.toggle("frozen", !!(pip && (pip.fBase || pip.fUni)));
+}
+
 function renderHood(loops) {
   const withCb = loops.filter((l) => l.callbacks.length);
   const cbCount = withCb.reduce((n, l) => n + l.callbacks.length, 0);
@@ -1395,7 +1435,11 @@ function showTab(t) {
   shownTab = t;
   for (const b of document.querySelectorAll(".tb-nav [data-tab], .rail-nav [data-tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
   for (const s of document.querySelectorAll(".tab")) s.hidden = !(s.id === `tab-${t}` || (t === "home" && s.id === "tab-home-top"));
+  $("map").hidden = t === "flow"; // the How it works tab draws the full map itself
   window.scrollTo({ top: 0 });
+  try {
+    history.replaceState(null, "", t === "home" ? location.pathname + location.search : `#${t}`);
+  } catch {}
   try {
     localStorage.setItem("hob-tab", t);
   } catch {}
@@ -1404,7 +1448,10 @@ let savedTab = "home";
 try {
   savedTab = localStorage.getItem("hob-tab") ?? "home";
 } catch {}
-if (!["home", "dash", "story", "hood"].includes(savedTab)) savedTab = "home";
+const TABS = ["home", "dash", "story", "flow", "hood"];
+const fromHash = location.hash.slice(1);
+if (TABS.includes(fromHash)) savedTab = fromHash;
+if (!TABS.includes(savedTab)) savedTab = "home";
 showTab(savedTab);
 
 const toast = (msg, cls = "") => {
@@ -1502,6 +1549,7 @@ function refresh() {
       renderLoops(loops);
       renderFeed();
       renderHood(loops);
+      flowState(loops);
       $("heartbeat").classList.add("on");
     } catch (e) {
       console.error(e);

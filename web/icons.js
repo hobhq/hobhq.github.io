@@ -32,6 +32,8 @@ const P = {
   lab: `<path d="M9 3.5h6M10 3.5v6L4.5 19.5h15L14 9.5v-6"/><path class="a-bubble" d="M9.5 15.5h.5M13 16.5h.5M11.5 13.5h.5"/>`,
   block: `<circle cx="12" cy="12" r="8.5"/><path class="a-blink" d="m6 6 12 12"/>`,
   ledger: `<path d="M4 4.5h16v15H4Z"/><path d="M4 9h16" /><path class="a-type" d="M7 12.5h6M7 15.5h4M15.5 12.5h1.5M15.5 15.5h1.5"/>`,
+  // flow: three entities, the links pulse between them
+  flow: `<path d="M3 4h6v5H3ZM3 15h6v5H3Z"/><path d="M15 9.5h6v5h-6Z"/><path class="a-flow" d="M9 6.5c3 0 3 5.5 6 5.5M9 17.5c3 0 3-5.5 6-5.5"/>`,
   eye: `<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle class="a-look" cx="12" cy="12" r="2.8"/>`,
 };
 
