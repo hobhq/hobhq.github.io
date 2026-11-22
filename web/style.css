@@ -105,13 +105,15 @@ a { color: var(--blush); }
 #hob .chimney { stroke: var(--red); stroke-width: 3; fill: none; }
 #hob .beacon { fill: var(--ember); animation: ai-blink 1.4s steps(2, end) infinite; }
 #hob .visor { fill: #12000a; stroke: rgba(255, 30, 66, .6); stroke-width: 1.5; }
-#hob .eyes path { fill: var(--red); }
-#hob .visor-scan { stroke: #ffd9dd; stroke-width: 3; stroke-linecap: square; animation: visor 3.2s ease-in-out infinite; }
+#hob .eyes path { fill: #ff4d66; }
+/* the eyes glow: a hot core with a crimson-ember halo that breathes */
+#hob .eyes { filter: drop-shadow(0 0 2px #ff1e42) drop-shadow(0 0 6px rgba(255, 51, 0, .85)); animation: eye-glow 2.8s ease-in-out infinite; }
+@keyframes eye-glow { 0%, 100% { filter: drop-shadow(0 0 2px #ff1e42) drop-shadow(0 0 5px rgba(255, 51, 0, .7)); } 50% { filter: drop-shadow(0 0 3px #ff5a70) drop-shadow(0 0 10px rgba(255, 51, 0, 1)); } }
 #hob .mouth { fill: none; stroke: rgba(255, 30, 66, .7); stroke-width: 3; stroke-dasharray: 4 4; }
 .defs .g1 { stop-color: #1a0610; }
 .defs .g2 { stop-color: #050507; }
-@keyframes visor { 0%, 100% { transform: translateX(0); opacity: .9; } 50% { transform: translateX(52px); opacity: .9; } }
-.hero-fig .eyes, .node-hob .eyes, .rx-box svg .eyes { transform-origin: 60px 73px; animation: blink 6s infinite; }
+.hero-fig .eyes, .node-hob .eyes, .rx-box svg .eyes, #hob .eyes { transform-origin: 60px 73px; }
+.hero-fig .eyes, .node-hob .eyes, .rx-box svg .eyes { animation: blink 6s infinite, eye-glow 2.8s ease-in-out infinite; }
 @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 
 /* ---------------------------------------------------------------- top bar */

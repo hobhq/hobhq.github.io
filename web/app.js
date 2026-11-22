@@ -86,7 +86,10 @@ const C = {
   reactive: { key: "reactive", short: "Reactive", ...D.chains.reactive, abi: ABI.reactive, address: D.chains.reactive.contract },
 };
 // cacheTime 0: viem caches the block number for 4 s by default, which made events lag behind state.
-for (const c of Object.values(C)) c.p = createPublicClient({ chain: chainOf(c), transport: http(c.rpc), cacheTime: 0 });
+// Every read in one refresh tick goes out as a single JSON-RPC batch per chain (all three RPCs accept
+// batches), so a visitor sends a few HTTP requests every 4 s instead of ~60, and stays under free RPC limits.
+const RPC_OPTS = { batch: { batchSize: 50, wait: 16 }, retryCount: 3, retryDelay: 400 };
+for (const c of Object.values(C)) c.p = createPublicClient({ chain: chainOf(c), transport: http(c.rpc, RPC_OPTS), cacheTime: 0 });
 const VAULTS = [C.base, C.uni];
 const byChainId = Object.fromEntries(Object.values(C).map((c) => [String(c.chainId), c]));
 const read = (c, functionName, args = []) => c.p.readContract({ address: c.address, abi: c.abi, functionName, args });
@@ -278,7 +281,7 @@ async function rpcLogs(c, fromBlock, toBlock) {
 const ARCHIVE = LOCAL ? {} : { 1301: "https://sepolia.unichain.org" };
 async function archiveLogs(c, fromBlock, toBlock) {
   if (!ARCHIVE[c.chainId]) throw new Error("no archive RPC");
-  c.archive ??= createPublicClient({ chain: chainOf(c), transport: http(ARCHIVE[c.chainId]) });
+  c.archive ??= createPublicClient({ chain: chainOf(c), transport: http(ARCHIVE[c.chainId], RPC_OPTS) });
   const ranges = [];
   for (let f = fromBlock; f <= toBlock; f += 1000n) ranges.push([f, f + 999n < toBlock ? f + 999n : toBlock]);
   const outLogs = [];

@@ -1,0 +1,35 @@
+# Hob
+
+> Hob is a household budget agreement enforced on every chain by Reactive Network. Two adults (Alice and Bob) ratify the rules, an AI shopper (Pip) buys and must say why on-chain, the vaults enforce each rule locally, and Hob, a reactive contract on Reactive Lasna, watches Base Sepolia and Unichain Sepolia and tightens budgets, freezes members, mirrors decisions and starts each new period by itself, with no keeper, bot or cron. Built for the Reactive Omni Buildathon (DoraHacks), track "Set It and Forget It". Tagline: "AI reasons. Code enforces. Hob reacts."
+
+The live dashboard reads the testnet contracts straight from public RPCs; it holds no keys and needs no backend. Its tabs are client-side views of one page: Dashboard (live loops: event on a chain → Hob on Reactive → callback), The House (rules, members, co-sign and proposal queues), Story (an 8-chapter guided demo) and For Judges (the track's seven questions answered with transaction links).
+
+## Links
+
+- [Live dashboard](https://hobhq.github.io/): testnet, read-only unless a wallet is connected
+- [Source code](https://github.com/hobhq/hobhq.github.io): Solidity contracts, tests, scripts and the dashboard
+- [README](https://github.com/hobhq/hobhq.github.io/blob/main/README.md): what Hob does, how it works, how to run it
+- [On-chain evidence](https://github.com/hobhq/hobhq.github.io/blob/main/docs/EVIDENCE.md): every recorded loop and scenario with transaction hashes
+- [Evidence data (JSON)](https://hobhq.github.io/evidence.testnet.json): machine-readable version of the evidence
+- [Deployment (JSON)](https://hobhq.github.io/deployment.testnet.json): chain ids, RPCs and contract addresses
+
+## How it works
+
+- Base Sepolia (84532) is the home chain: adults propose and ratify rules, members are set there, anyone in the house spends there.
+- Unichain Sepolia (1301) is a mirror: members spend there; rules and members arrive only through Hob's callbacks, there is no local admin.
+- Reactive Lasna (5318007) runs HobReactive: it subscribes to Spent on both chains and to RulesRatified and MemberSet on the home chain, keeps one household ledger per period and category, counts each member's pace across chains, and sends callbacks (cbCategoryMode, cbFreezeMember, cbApplyRules, cbSetMember) to a chain only when that chain must change.
+- Escalation: NORMAL → TIGHT (the remaining budget is split per chain and the AI needs a co-sign) → FROZEN (cap reached on the sum of all chains).
+- Velocity: Pip may make 6 buys per window across both chains; the 7th freezes Pip on every chain. Adults have looser limits.
+- Periods roll over by themselves: the period id travels inside every spend event, so no one sends a reset transaction. On testnet a period is 1 hour.
+- Audit trail: every purchase by Pip carries its reason (SpendReason, at most 160 bytes) in the same transaction; an AI purchase without a reason is refused (ReasonRequired).
+
+## Contracts (testnet)
+
+- HobVault on Base Sepolia: 0xe76946846097234d2dfdf860eb17814e475b9aff
+- HobVault on Unichain Sepolia: 0x4f13db218132d32839e25613d00db96e3dc2df3e
+- HobReactive on Reactive Lasna: 0x4f13db218132d32839e25613d00db96e3dc2df3e
+- Members: Alice 0xED7fc2Fd462EaeB5616b8421A6D646EF7F0884Cb, Bob 0xE1D24e45d6cD0Ed81A415363fa9f3dA2883A6A2A, Pip (AI) 0x50786049840c2A6fAcb7b1ccDfDeFF54eecE9180
+
+## Optional
+
+- [Video script](https://github.com/hobhq/hobhq.github.io/blob/main/docs/VIDEO.md)
