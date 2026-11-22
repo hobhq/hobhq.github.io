@@ -476,6 +476,11 @@ const hoursLeft = (until) => {
   const m = Math.max(0, Number(until - S.now) / 60);
   return m > 90 ? `${Math.round(m / 60)} h` : `${Math.max(1, Math.round(m))} min`;
 };
+// time left until the next period starts by itself (no transaction needed)
+const untilReset = () => {
+  const t = Math.max(0, Number(S.periodStart) + Number(D.period) - Number(S.now));
+  return t >= 86400 ? `${Math.floor(t / 86400)} d` : t >= 3600 ? `${Math.floor(t / 3600)} h ${Math.floor((t % 3600) / 60)} min` : `${Math.max(1, Math.ceil(t / 60))} min`;
+};
 const ago = (ts) => {
   const d = Math.max(0, Number(S.now) - ts);
   if (d < 60) return `${d}s ago`;
@@ -570,13 +575,13 @@ function renderNodes(loops, say) {
     const mode = st.mode === 1 ? `${badge(1)} <span class="muted small">${usd(st.left)} left here</span>` : badge(st.mode);
     return `<div class="n-head"><div class="n-id"><div class="n-icon">${ms(isHome ? "account_balance_wallet" : "device_hub")}</div><div><p class="n-title">${chainLabel(c)}</p><span class="n-sub">${isHome ? "Home vault · the adults decide here" : "Mirror vault · rules arrive from Hob"}</span></div></div>
         <span class="n-badge ${isHome || synced ? "calm" : "tight"}">${isHome ? "Home" : synced ? "Mirrored" : "Syncing"}</span></div>
-      <div class="n-panel"><div class="np-h"><span>Groceries spent here</span><span class="big">${money(here)}</span></div>
+      <div class="n-panel"><div class="np-h"><span>Groceries here, this ${PW}</span><span class="big">${money(here)}</span></div>
         <div class="bar"><div class="seg ${c.key}" style="width:${pct}%"></div></div>
         <div class="np-f"><span>House cap ${money(g.cap)}</span><span>${pct.toFixed(1)}% of the cap</span></div></div>
       <div class="n-rows">
         <div><span>Groceries</span><b>${mode}</b></div>
-        <div><span>Rent spent here</span><b>${money(isHome ? rent.byBase : rent.byUni)}</b></div>
-        <div><span>Last spend</span><b>${last ? `${usd(last.a.amount)} · ${nameOf(last.a.member)}` : "none yet"}</b></div>
+        <div><span>Rent here, this ${PW}</span><b>${money(isHome ? rent.byBase : rent.byUni)}</b></div>
+        <div><span>Last spend</span><b>${last ? `${money(last.a.amount)} · ${nameOf(last.a.member)} · ${ago(last.ts)}` : "none yet"}</b></div>
         <div><span>Rules</span><b>v${isHome ? v.vHome : v.vMirror}${isHome ? "" : synced ? " · in sync" : " · syncing"}</b></div>
       </div>
       <div class="n-foot"><span>${ms("link", "sm")} <code>${short(c.address)}</code></span><span class="tag">${isHome ? "Hooked to Hob" : "Copied by Hob"}</span></div>`;
@@ -589,9 +594,9 @@ function renderNodes(loops, say) {
   const hot = hotLoop(say);
   html("n-rx", `<div class="n-head"><div class="n-id"><div class="n-icon hob">${HOB_MINI}</div><div><p class="n-title">Hob</p><span class="n-sub">Guardian on Reactive Network</span></div></div>
       <span class="n-badge ${badgeTxt[0]}">${badgeTxt[1]}</span></div>
-    <div class="n-panel"><div class="np-h"><span>House spend, both chains</span><span class="big">${money(g.spent)}</span></div>
+    <div class="n-panel"><div class="np-h"><span>House spend this ${PW}, both chains</span><span class="big">${money(g.spent)}</span></div>
       <div class="bar big-bar"><div class="seg base" style="width:${pct(g.byBase)}%"></div><div class="seg uni" style="width:${pct(g.byUni)}%"></div>${g.cap > 0n ? `<div class="mark-t" style="left:${pct(g.threshold)}%"></div>` : ""}</div>
-      <div class="np-f"><span>Base ${usd(g.byBase)} + Unichain ${usd(g.byUni)}</span><span>Cap ${money(g.cap)}</span></div></div>
+      <div class="np-f"><span>Base ${usd(g.byBase)} + Unichain ${usd(g.byUni)} · new ${PW} in ${untilReset()}</span><span>Cap ${money(g.cap)}</span></div></div>
     <div class="n-alert ${hot ? "" : "calm"}">${ms(hot ? "gpp_maybe" : "chat_bubble")}<p><b>${hot ? "Active intercept" : "Hob says"}</b>${esc(hobSays(say))}</p></div>
     <div class="n-foot"><span>State: ${badgeTxt[1].toLowerCase()}</span><span class="tag ${hot ? "hot" : ""}">${loops.length} reactions</span></div>`);
 }
@@ -677,7 +682,7 @@ function renderRoster() {
          <div><span>If the pace breaks</span><b>frozen ${Math.round(pace.freezeFor / 3600)} h, every chain</b></div>`
       : `<div><span>Vote</span><b>1 of ${S.quorum} needed for a rule</b></div>
          <div><span>Spent this ${PW}</span><b>${money(spent)}</b></div>
-         <div><span>Last spend</span><b>${last ? `${usd(last.a.amount)} on ${last.c.short}` : "none yet"}</b></div>
+         <div><span>Last spend</span><b>${last ? `${money(last.a.amount)} on ${last.c.short} · ${ago(last.ts)}` : "none yet"}</b></div>
          <div><span>Can</span><b>propose · approve · co-sign · unfreeze</b></div>`;
     const tag = isPip ? (frozen ? `<span class="p-tag frozen">Frozen · ${hoursLeft(r.until)}</span>` : `<span class="p-tag ai">AI agent</span>`) : `<span class="p-tag">Full authority</span>`;
     const foot = away ? `<span>Not in the house yet</span>` : frozen
