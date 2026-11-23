@@ -25,7 +25,7 @@ jobs:
           FOUNDRY_DIR: ${{ runner.temp }}/foundry
         run: |
           curl -sSfL https://foundry.paradigm.xyz | bash
-          "$FOUNDRY_DIR/bin/foundryup" --install stable
+          "$FOUNDRY_DIR/bin/foundryup" --install v1.7.1
           echo "$FOUNDRY_DIR/bin" >> "$GITHUB_PATH"
       - name: Build
         run: forge --version && forge build --sizes
