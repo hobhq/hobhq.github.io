@@ -9,6 +9,8 @@ Reactive Omni Buildathon · track **Set It and Forget It** · Base Sepolia + Uni
 
 **Live dashboard (testnet, read-only): https://hobhq.github.io/**
 
+**Demo video (2 min): https://youtu.be/_2YnV3aWUQc**
+
 **No single owner.** Most cross-chain spending limits give one person the keys. In Hob, two adults ratify
 what the AI proposes, and Reactive Network enforces their agreement on every chain, with nobody online.
 

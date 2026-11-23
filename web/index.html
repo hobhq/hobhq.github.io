@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org https://base-sepolia.blockscout.com https://unichain-sepolia.blockscout.com; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* https://lasna-rpc.rnk.dev https://base-sepolia-rpc.publicnode.com https://unichain-sepolia-rpc.publicnode.com https://sepolia.base.org https://sepolia.unichain.org https://base-sepolia.blockscout.com https://unichain-sepolia.blockscout.com; frame-src https://www.youtube-nocookie.com; base-uri 'none'; form-action 'none'" />
   <link rel="modulepreload" href="vendor/viem.js" />
   <link rel="modulepreload" href="app.js" />
   <link rel="modulepreload" href="icons.js" />
@@ -276,6 +276,10 @@
     <!-- ============================================================ For Judges -->
     <div class="tab" id="tab-hood" hidden>
       <div class="grid">
+        <section class="glass-card section span2" id="demo-video">
+          <div class="sec-head"><div><span class="eyebrow">Demo · 2 minutes · real testnet transactions</span><h2>Watch Hob work</h2></div><a class="btn ghost-hud" href="https://youtu.be/_2YnV3aWUQc" target="_blank" rel="noopener">Open on YouTube</a></div>
+          <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/_2YnV3aWUQc?rel=0" title="Hob demo video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+        </section>
         <section class="glass-card section span2">
           <div class="sec-head"><div><span class="eyebrow">On-chain reactivity, in one household</span><h2>Seven questions, answered with transactions</h2></div></div>
           <ol class="qa">

@@ -8,6 +8,7 @@ The live dashboard reads the testnet contracts straight from public RPCs; it hol
 
 - [Live dashboard](https://hobhq.github.io/): testnet, read-only unless a wallet is connected
 - [Source code](https://github.com/hobhq/hobhq.github.io): Solidity contracts, tests, scripts and the dashboard
+- [Demo video](https://youtu.be/_2YnV3aWUQc): 2 minutes, every scene a real testnet transaction
 - [README](https://github.com/hobhq/hobhq.github.io/blob/main/README.md): what Hob does, how it works, how to run it
 - [On-chain evidence](https://github.com/hobhq/hobhq.github.io/blob/main/docs/EVIDENCE.md): every recorded loop and scenario with transaction hashes
 - [Evidence data (JSON)](https://hobhq.github.io/evidence.testnet.json): machine-readable version of the evidence
