@@ -438,6 +438,8 @@ select option { background: #0f0f16; }
 button.ghost { background: none; color: var(--blush); box-shadow: inset 0 0 0 1px var(--red); }
 button.small { padding: 6px 12px; font-size: 10.5px; }
 button:disabled, .btn:disabled { opacity: .4; cursor: not-allowed; filter: none; }
+/* public page: read-only, the signing controls stay out of sight */
+body.readonly #console-card .form-grid, body.readonly #console-card .form-actions .btn, body.readonly #console-card .propose, body.readonly .pend button, body.readonly .person button { display: none; }
 body.acting .step-act button, body.acting .form-actions button, body.acting .pend button, body.acting .person button { opacity: .5; pointer-events: none; cursor: wait; }
 button:focus-visible, a:focus-visible { outline: 1px solid var(--red); outline-offset: 3px; }
 

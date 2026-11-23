@@ -16,6 +16,10 @@ import { icon } from "./icons.js";
 const ON_DEV_HOST = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 const NET = new URLSearchParams(location.search).get("net") ?? (ON_DEV_HOST ? "local" : "testnet");
 const LOCAL = NET === "local";
+// The public page only reads. Buttons that sign need a member key, so they appear only locally or
+// with ?operator (the team's own runs and the video recorder); visitors never get a wallet prompt.
+const OPERATOR = LOCAL || new URLSearchParams(location.search).has("operator");
+document.body.classList.toggle("readonly", !OPERATOR);
 const D = await fetch(`deployment.${NET}.json`).then((r) => {
   if (!r.ok) throw new Error(`deployment.${NET}.json not found — run the deploy first`);
   return r.json();
@@ -1008,7 +1012,7 @@ function recordedChapter(i) {
 // ================================================================== actions
 async function walletFor(who, c) {
   if (DEMO_KEYS) return createWalletClient({ chain: chainOf(c), transport: http(c.rpc), account: privateKeyToAccount(DEMO_KEYS[who]) });
-  if (!window.ethereum) throw new Error("This page is read-only without a wallet. Actions need Alice, Bob or Pip's key; the full run is in the video and docs/EVIDENCE.md, or run it locally");
+  if (!OPERATOR || !window.ethereum) throw new Error("This page is read-only. Actions need Alice, Bob or Pip's key; the full run is in the video and docs/EVIDENCE.md, or run it locally");
   const w = createWalletClient({ chain: chainOf(c), transport: custom(window.ethereum) });
   const accounts = await w.requestAddresses();
   const want = WHO[who].toLowerCase();
@@ -1392,12 +1396,12 @@ function renderSteps() {
     <h2 class="step-t">${st.title}</h2>
     <p class="story-p">${st.story}</p>
     <div class="rx-box">${HOB_MINI}<div><span class="rx-k">What Hob does, on Reactive Network</span><p>${st.reactive}</p></div></div>
-    ${LOCAL ? "" : `<p class="watch">Watching the demo house on testnet. The chapters are run from a terminal (<code>node ops/prove.mjs testnet --story</code>); the checks below are read live from the chains, and every recorded transaction is linked to its explorer. The buttons only work from a member's wallet.</p>`}
+    ${LOCAL ? "" : `<p class="watch">Watching the demo house on testnet. The chapters are run from a terminal (<code>node ops/prove.mjs testnet --story</code>); the checks below are read live from the chains, and every recorded transaction is linked to its explorer. ${OPERATOR ? "The buttons only work from a member's wallet." : "Nothing here needs a wallet: the page only reads."}</p>`}
     <div class="step-act">
-      ${st.action && (LOCAL || window.ethereum) ? `<button class="primary" data-run="${current}" ${dis ? "disabled" : ""}>${st.action}</button>` : ""}
-      ${st.secondary ? `<button data-run2="${current}">${st.secondary.label}</button>` : ""}
+      ${st.action && OPERATOR && (LOCAL || window.ethereum) ? `<button class="primary" data-run="${current}" ${dis ? "disabled" : ""}>${st.action}</button>` : ""}
+      ${st.secondary && OPERATOR ? `<button data-run2="${current}">${st.secondary.label}</button>` : ""}
       ${nextBtn}
-      ${dis && st.action ? `<span class="muted small">${dis}</span>` : ""}
+      ${dis && st.action && OPERATOR ? `<span class="muted small">${dis}</span>` : ""}
       ${note ? `<span class="muted small">${note}</span>` : ""}
     </div>
     <h3 class="sub">Watch for</h3>
@@ -1425,7 +1429,11 @@ async function runStep(i, which = "run") {
 // ================================================================== wiring
 $("net-label").textContent = LOCAL ? "Local · 3 chains" : "Testnet · Lasna";
 $("addrs").textContent = `Hob (reactive) ${C.reactive.address} · home vault ${C.base.address} · mirror vault ${C.uni.address}`;
-$("act-hint").textContent = DEMO_KEYS ? "Local dev keys · every click is a real transaction" : "Uses your browser wallet";
+$("act-hint").textContent = DEMO_KEYS ? "Local dev keys · every click is a real transaction" : OPERATOR ? "Operator mode · member wallet" : "Read-only · no wallet needed";
+if (!OPERATOR) {
+  $("console-card").querySelector(".eyebrow").textContent = "Read live from Base, Unichain and Lasna";
+  $("console-card").querySelector("h2").textContent = "Live trace";
+}
 for (const [k, label] of [["alice", "Alice (adult)"], ["bob", "Bob (adult)"], ["agent", "Pip (AI shopper)"]]) $("as").add(new Option(label, k));
 for (const c of VAULTS) $("on").add(new Option(c.short, c.key));
 
