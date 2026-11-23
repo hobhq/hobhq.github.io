@@ -21,10 +21,12 @@ jobs:
         with:
           submodules: recursive
       - name: Install Foundry
+        env:
+          FOUNDRY_DIR: ${{ runner.temp }}/foundry
         run: |
           curl -sSfL https://foundry.paradigm.xyz | bash
-          "$HOME/.foundry/bin/foundryup" --install stable
-          echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
+          "$FOUNDRY_DIR/bin/foundryup" --install stable
+          echo "$FOUNDRY_DIR/bin" >> "$GITHUB_PATH"
       - name: Build
         run: forge --version && forge build --sizes
       - name: Test (unit + invariant fuzz)
