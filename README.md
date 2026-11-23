@@ -3,9 +3,43 @@
 **AI reasons. Code enforces. Hob reacts.**
 A household agreement that no one changes alone, enforced on every chain by Reactive Network, even while everyone is offline.
 
+[![tests](https://github.com/hobhq/hobhq.github.io/actions/workflows/test.yml/badge.svg)](https://github.com/hobhq/hobhq.github.io/actions/workflows/test.yml)
+
 Reactive Omni Buildathon · track **Set It and Forget It** · Base Sepolia + Unichain Sepolia + Reactive Lasna
 
 **Live dashboard (testnet, read-only): https://hobhq.github.io/**
+
+**No single owner.** Most cross-chain spending limits give one person the keys. In Hob, two adults ratify
+what the AI proposes, and Reactive Network enforces their agreement on every chain, with nobody online.
+
+## For judges: the 60-second check
+
+Two complete loops from the recorded testnet run, in order. Each one starts on a vault, goes through Hob on
+Reactive Lasna, and comes back as callbacks, with no bot or keeper in between.
+
+**1 · Two adults agree, every chain obeys** (Bob's approval is the second of two; nobody has admin on Unichain)
+
+| Step | Chain | Transaction |
+|---|---|---|
+| Rule ratified, 2 of 2 adults (`RulesRatified`) | Base Sepolia | [`0x2e31d0cb…`](https://base-sepolia.blockscout.com/tx/0x2e31d0cbe939fda0d7c55d153292e48f74242c30da7c7aa3cf0a5cf51b2f0c30) |
+| Hob reacts (`react`) | Reactive Lasna | [`0x2b0ab1e4…`](https://lasna.reactscan.net/tx/0x2b0ab1e4f402f09a43743de6ea0882ae2105cbb28ba079b1b800365874786427) |
+| Rule copied by callback (`cbApplyRules`), 3.8 s later | Unichain Sepolia | [`0x3a0eb9d0…`](https://sepolia.uniscan.xyz/tx/0x3a0eb9d04387f617050a0b497850cc297289b3f24ddebea6672f69bea72a1653) |
+
+**2 · Pip, the AI shopper, breaks its pace across chains and is frozen everywhere** (3 buys on Base + 4 on
+Unichain: each vault allows 5 an hour, so neither vault alone sees a problem)
+
+| Step | Chain | Transaction |
+|---|---|---|
+| Pip's 7th buy in the hour (`Spent`) | Unichain Sepolia | [`0x5284a655…`](https://sepolia.uniscan.xyz/tx/0x5284a655038bb54c2dff3d333e2f634d40add16fd9935f788557e7366f27c5c4) |
+| Hob counts 7 across both chains (`react`) | Reactive Lasna | [`0x4478fdd5…`](https://lasna.reactscan.net/tx/0x4478fdd55e968cffa4d6a05c6825a1090ed7e0b005d6524f9b9cd8efeb585070) |
+| Pip frozen by callback (`cbFreezeMember`), 2.2 s | Base Sepolia | [`0x613df01f…`](https://base-sepolia.blockscout.com/tx/0x613df01f358c3ca7ad96af12a0042677ed56c5071e94863b9c70fbe360130c48) |
+| Pip frozen by callback (`cbFreezeMember`), 2.5 s | Unichain Sepolia | [`0x76163abc…`](https://sepolia.uniscan.xyz/tx/0x76163abc072388d186102eaee31d5f3799c3169d63e29625c97e035640137109) |
+
+Then: only an adult can lift the freeze, the household cap is counted on the sum of both chains, and each
+period ends with no transaction from anyone. All 154 transactions of the recorded runs are in
+**[docs/EVIDENCE.md](docs/EVIDENCE.md)**; the contracts are verified on Sourcify (exact match); the dashboard
+shows every chapter with its proof under **The Story**, and the whole system on one map under
+**[How it works](https://hobhq.github.io/#flow)**.
 
 **Who's who.** **Hob** is the household's guardian: the reactive contract on Reactive Network that watches Base and Unichain and enforces the agreement by itself. **Alice** and **Bob** are the adults who agree on the rules. **Pip** is the AI shopper: it buys and can propose, but it never ratifies, co-signs or unfreezes, and it must say why for every purchase.
 

@@ -1,0 +1,31 @@
+# Runs the contract test suite (unit + invariant fuzz) on every push and pull request.
+# Foundry is installed with its official installer: this repository only allows GitHub-owned actions.
+name: tests
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "test/**", "foundry.toml", ".github/workflows/test.yml"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        run: |
+          curl -sSfL https://foundry.paradigm.xyz | bash
+          "$HOME/.foundry/bin/foundryup" --install stable
+          echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
+      - name: Build
+        run: forge --version && forge build --sizes
+      - name: Test (unit + invariant fuzz)
+        run: forge test -vv
