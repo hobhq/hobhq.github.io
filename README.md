@@ -14,6 +14,17 @@ Reactive Omni Buildathon · track **Set It and Forget It** · Base Sepolia + Uni
 **No single owner.** Most cross-chain spending limits give one person the keys. In Hob, two adults ratify
 what the AI proposes, and Reactive Network enforces their agreement on every chain, with nobody online.
 
+## Deployed contracts (testnet)
+
+| Contract | Chain | Address |
+|---|---|---|
+| `HobVault` (home: rules are ratified here) | Base Sepolia (84532) | [`0xe76946846097234d2dfdf860eb17814e475b9aff`](https://base-sepolia.blockscout.com/address/0xe76946846097234d2dfdf860eb17814e475b9aff) |
+| `HobVault` (mirror: no local admin) | Unichain Sepolia (1301) | [`0x4f13db218132d32839e25613d00db96e3dc2df3e`](https://sepolia.uniscan.xyz/address/0x4f13db218132d32839e25613d00db96e3dc2df3e) |
+| `HobReactive` (Hob) | Reactive Lasna (5318007) | [`0x4f13db218132d32839e25613d00db96e3dc2df3e`](https://lasna.reactscan.net/address/0x4f13db218132d32839e25613d00db96e3dc2df3e) |
+
+All three are verified on [Sourcify](https://sourcify.dev) (exact match). Full deployment record, including
+members and the callback proxies: [`deployments/testnet.json`](deployments/testnet.json).
+
 ## For judges: the 60-second check
 
 Two complete loops from the recorded testnet run, in order. Each one starts on a vault, goes through Hob on
@@ -195,8 +206,9 @@ Static HTML + CSS + JS with viem (no framework, no build step). On `127.0.0.1` i
 
 - **Dashboard**: *AI reasons · code enforces · Hob reacts*, Hob's latest action in plain words, the three chains live (Base · Hob on Reactive · Unichain), the household ledger summed across chains with its spend curve and Hob's interventions, the people (Alice, Bob, Pip), **Pip's receipts** (each purchase with Pip's own words, the vault's decision and Hob's reaction), Hob's last steps and an interactive console with a live trace.
 - **The House**: the agreement, the budget per chain, members, pending decisions and every **Reactive loop**: the origin tx linked to its Reactive tx and callback txs, with latency.
+- **How It Works**: every entity and every interaction on one map; click one to see what it can and cannot do, and watch real transactions light up their path.
 - **The Story**: 8 chapters (agree on rules → welcome Pip → shop on two chains → Pip goes rogue → only adults unfreeze → tighten line → cap → new month). One button each; checks tick off from on-chain state.
-- **For Judges**: seven questions about on-chain reactivity answered with transactions, why this needs Reactive, where the evidence is, the recorded scenarios and rollovers, contracts (Sourcify-verified), features used and guarantees.
+- **For Judges**: the demo video, seven questions about on-chain reactivity answered with transactions, why this needs Reactive, where the evidence is, the recorded scenarios and rollovers, contracts (Sourcify-verified), features used and guarantees.
 
 ## Testnet
 

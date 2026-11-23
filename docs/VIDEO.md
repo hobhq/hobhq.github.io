@@ -1,4 +1,9 @@
-# Demo video script (target 2:45, hard limit 3:00)
+# Demo video
+
+**Published video (2:11): https://youtu.be/_2YnV3aWUQc**. It was recorded from the live site with real testnet
+transactions. The plan below is the original script, kept for reference.
+
+## Original script (target 2:45, hard limit 3:00)
 
 **The idea in one line:** *AI reasons. Code enforces. Hob reacts.* An AI shopper spends a household's money on two
 chains; two adults set the rules together; Hob, on Reactive Network, enforces them across chains, even while
