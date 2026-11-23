@@ -1006,7 +1006,7 @@ function recordedChapter(i) {
   const items = CHAPTER_LOOPS[i].map((k) => story.loops[k]).filter(Boolean).map((l) => `<li><b>${esc(l.label)}</b><br>${loopLinks(l)}${Object.keys(l.callbacks ?? {}).length ? ` <span class="muted">(${Object.values(l.callbacks).map((c) => secs(c.ms)).join(" / ")})</span>` : ""}</li>`);
   if (i === CHAPTER_LOOPS.length - 1) for (const r of REC.rollovers.slice(-3)) items.push(`<li><b>Period #${r.fromPeriod} → #${r.toPeriod}</b>: groceries ${r.before.base} / ${r.before.uni} → NORMAL on both chains, ${new Date(r.observedAt).toLocaleString()}. No transaction.</li>`);
   if (!items.length) return "";
-  return `<h3 class="sub">Recorded on testnet (run ${story.run}, ${new Date(story.startedAt).toLocaleString()})</h3><ol class="steplog rec">${items.join("")}</ol>`;
+  return `<h3 class="sub">${OPERATOR ? "Recorded" : "Proven"} on testnet (run ${story.run}, ${new Date(story.startedAt).toLocaleString()})</h3><ol class="steplog rec">${items.join("")}</ol>`;
 }
 
 // ================================================================== actions
@@ -1373,7 +1373,15 @@ async function cosignDemo(log) {
 
 let current = null;
 const logs = STEPS.map(() => []);
-const stepDone = (i) => (S ? STEPS[i].checks(S).every((c) => c[1]) : false);
+const liveDone = (i) => (S ? STEPS[i].checks(S).every((c) => c[1]) : false);
+// Visitors can't act, and the live checks reset every period, so their progress follows the recorded
+// testnet run instead: a chapter is done when its loop is on-chain with explorer links.
+const proven = (i) => {
+  const story = REC && [...REC.runs].reverse().find((r) => r.kind === "story");
+  if (!story) return false;
+  return CHAPTER_LOOPS[i].length ? CHAPTER_LOOPS[i].every((k) => story.loops[k]) : REC.rollovers?.length > 0;
+};
+const stepDone = (i) => (OPERATOR ? liveDone(i) : proven(i));
 
 function renderSteps() {
   if (firstPeriod === null) firstPeriod = S.period;
@@ -1389,14 +1397,14 @@ function renderSteps() {
   const checks = st.checks(S);
   const dis = st.disabled?.(S);
   const note = st.note?.(S);
-  const nextBtn = current < STEPS.length - 1 && stepDone(current) ? `<button class="ghost" data-step="${current + 1}">Next: ${STEPS[current + 1].title} →</button>` : "";
+  const nextBtn = current < STEPS.length - 1 && (stepDone(current) || !OPERATOR) ? `<button class="ghost" data-step="${current + 1}">Next: ${STEPS[current + 1].title} →</button>` : "";
   const log = logs[current];
   html("step", `
     <p class="eyebrow">Chapter ${current + 1} of ${STEPS.length}</p>
     <h2 class="step-t">${st.title}</h2>
     <p class="story-p">${st.story}</p>
     <div class="rx-box">${HOB_MINI}<div><span class="rx-k">What Hob does, on Reactive Network</span><p>${st.reactive}</p></div></div>
-    ${LOCAL ? "" : `<p class="watch">Watching the demo house on testnet. The chapters are run from a terminal (<code>node ops/prove.mjs testnet --story</code>); the checks below are read live from the chains, and every recorded transaction is linked to its explorer. ${OPERATOR ? "The buttons only work from a member's wallet." : "Nothing here needs a wallet: the page only reads."}</p>`}
+    ${LOCAL ? "" : OPERATOR ? `<p class="watch">Watching the demo house on testnet. The chapters are run from a terminal (<code>node ops/prove.mjs testnet --story</code>); the checks below are read live from the chains, and every recorded transaction is linked to its explorer. The buttons only work from a member's wallet.</p>` : `<p class="watch">Every chapter was run on testnet: the proof is linked to the explorers. The live checks read the chains as they are now, and the period resets every hour. Nothing here needs a wallet.</p>${recordedChapter(current)}`}
     <div class="step-act">
       ${st.action && OPERATOR && (LOCAL || window.ethereum) ? `<button class="primary" data-run="${current}" ${dis ? "disabled" : ""}>${st.action}</button>` : ""}
       ${st.secondary && OPERATOR ? `<button data-run2="${current}">${st.secondary.label}</button>` : ""}
@@ -1404,9 +1412,9 @@ function renderSteps() {
       ${dis && st.action && OPERATOR ? `<span class="muted small">${dis}</span>` : ""}
       ${note ? `<span class="muted small">${note}</span>` : ""}
     </div>
-    <h3 class="sub">Watch for</h3>
+    <h3 class="sub">${OPERATOR ? "Watch for" : "Live right now"}</h3>
     <ul class="checks">${checks.map(([label, ok, val]) => `<li class="${ok ? "ok" : ""}"><span class="ck">${ok ? "✓" : "○"}</span>${label}${val ? `<span class="val">${val}</span>` : ""}</li>`).join("")}</ul>
-    ${LOCAL ? "" : recordedChapter(current)}
+    ${LOCAL || !OPERATOR ? "" : recordedChapter(current)}
     ${log.length ? `<h3 class="sub">What just happened</h3><ol class="steplog">${log.map((l) => `<li class="${l.err ? "err" : ""}">${esc(l.text)}${l.r ? ` ${txLink(l.r.chain, l.r.transactionHash)}` : ""}</li>`).join("")}</ol>` : ""}`);
 }
 
